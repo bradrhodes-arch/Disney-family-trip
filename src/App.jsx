@@ -251,12 +251,140 @@ function DraggableActivity({ activity, index, onUpdate, onRemove, onDragStart, o
   );
 }
 
+// Editable Field Component
+function EditableField({ label, value, type = 'text', placeholder, onSave, onDelete, showDelete = false, gridCols = 1, textarea = false, dateFormat = null }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value || '');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Update editValue when value prop changes (but not while editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValue(value || '');
+    }
+  }, [value, isEditing]);
+
+  const handleEdit = () => {
+    setEditValue(value || '');
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    if (onSave) {
+      onSave(editValue);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(value || '');
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    if (showDeleteConfirm) {
+      if (onDelete) onDelete();
+      setShowDeleteConfirm(false);
+    } else {
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const isEmpty = !value;
+  const displayValue = isEmpty ? null : (type === 'date' && dateFormat ? dateFormat(value) : value);
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: 10,
+    border: '1px solid #e8e0f0',
+    fontSize: 14,
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit'
+  };
+
+  const fieldContainerStyle = gridCols > 1 ? { gridColumn: `span ${gridCols}` } : {};
+
+  return (
+    <div style={fieldContainerStyle}>
+      <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>{label}</label>
+      {isEditing ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {textarea ? (
+            <textarea
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              placeholder={placeholder}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }}
+              autoFocus
+            />
+          ) : (
+            <input
+              type={type}
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              placeholder={placeholder}
+              style={inputStyle}
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !textarea) handleSave();
+                if (e.key === 'Escape') handleCancel();
+              }}
+            />
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={handleSave} style={{ flex: 1, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Save</button>
+            <button onClick={handleCancel} style={{ flex: 1, padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1, padding: '12px 16px', borderRadius: 10, background: isEmpty ? '#fafafa' : '#fff', border: isEmpty ? '1px dashed #e8e0f0' : '1px solid #f0f0f0', minHeight: textarea ? 80 : 'auto' }}>
+            {isEmpty ? (
+              <span style={{ color: '#ccc', fontStyle: 'italic' }}>{placeholder || 'Not set'}</span>
+            ) : (
+              <div style={{ fontSize: 14, color: '#4a4a6a', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                {displayValue}
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            <button onClick={handleEdit} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#667eea', fontWeight: 600, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Edit</button>
+            {showDelete && !isEmpty && (
+              <>
+                {showDeleteConfirm ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px', borderRadius: 8, background: '#fff7e6', border: '1px solid #ffe58f', minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: '#d48806', fontWeight: 600, marginBottom: 4 }}>Delete?</div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button onClick={() => { if (onDelete) onDelete(); setShowDeleteConfirm(false); }} style={{ flex: 1, padding: '4px 8px', borderRadius: 4, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>Yes</button>
+                      <button onClick={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: '4px 8px', borderRadius: 4, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>No</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={handleDelete} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontWeight: 600, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Delete</button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Family Member Accordion (simplified)
 function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser, onConfirmDelete, deletingMemberId }) {
   const displayName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unnamed Member';
   const displayPhone = member.phone || 'No phone';
   const isComplete = member.firstName && member.lastName && member.phone;
   
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   return (
     <div style={{ background: '#fafafa', borderRadius: 12, marginBottom: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', cursor: 'pointer' }} onClick={onToggle}>
@@ -271,24 +399,60 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
       {isOpen && (
         <div style={{ padding: '20px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>First Name</label><input type="text" value={member.firstName || ''} onChange={e => onUpdateMember(familyId, member.id, 'firstName', e.target.value)} placeholder="First name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
-            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Last Name</label><input type="text" value={member.lastName || ''} onChange={e => onUpdateMember(familyId, member.id, 'lastName', e.target.value)} placeholder="Last name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
+            <EditableField
+              label="First Name"
+              value={member.firstName}
+              placeholder="First name"
+              onSave={(val) => onUpdateMember(familyId, member.id, 'firstName', val)}
+            />
+            <EditableField
+              label="Last Name"
+              value={member.lastName}
+              placeholder="Last name"
+              onSave={(val) => onUpdateMember(familyId, member.id, 'lastName', val)}
+            />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Birthdate</label><input type="date" value={member.birthdate || ''} onChange={e => onUpdateMember(familyId, member.id, 'birthdate', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
-            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Phone Number</label><input type="tel" value={member.phone || ''} onChange={e => onUpdateMember(familyId, member.id, 'phone', e.target.value)} placeholder="(555) 123-4567" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
+            <EditableField
+              label="Birthdate"
+              value={member.birthdate}
+              type="date"
+              dateFormat={formatDate}
+              onSave={(val) => onUpdateMember(familyId, member.id, 'birthdate', val)}
+            />
+            <EditableField
+              label="Phone Number"
+              value={member.phone}
+              type="tel"
+              placeholder="(555) 123-4567"
+              onSave={(val) => onUpdateMember(familyId, member.id, 'phone', val)}
+            />
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <input type="text" value={member.emergencyContactName || ''} onChange={e => onUpdateMember(familyId, member.id, 'emergencyContactName', e.target.value)} placeholder="Name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
-              <input type="tel" value={member.emergencyContactPhone || ''} onChange={e => onUpdateMember(familyId, member.id, 'emergencyContactPhone', e.target.value)} placeholder="Phone number" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+              <EditableField
+                label=""
+                value={member.emergencyContactName}
+                placeholder="Name"
+                onSave={(val) => onUpdateMember(familyId, member.id, 'emergencyContactName', val)}
+              />
+              <EditableField
+                label=""
+                value={member.emergencyContactPhone}
+                type="tel"
+                placeholder="Phone number"
+                onSave={(val) => onUpdateMember(familyId, member.id, 'emergencyContactPhone', val)}
+              />
             </div>
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
-            <textarea value={member.otherInfo || ''} onChange={e => onUpdateMember(familyId, member.id, 'otherInfo', e.target.value)} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, resize: 'vertical', minHeight: 80, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-          </div>
+          <EditableField
+            label="Other Important Info"
+            value={member.otherInfo}
+            placeholder="Dietary restrictions, medical info, allergies, special needs..."
+            textarea={true}
+            onSave={(val) => onUpdateMember(familyId, member.id, 'otherInfo', val)}
+          />
           {isComplete && (
             <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0f0f0' }}>
               {deletingMemberId === member.id ? (
@@ -445,7 +609,6 @@ export default function App() {
   const [newFamilyLastName, setNewFamilyLastName] = useState('');
   const [step, setStep] = useState('password');
   const [trackingFlights, setTrackingFlights] = useState({ arrival: false, departure: false });
-  const [editingLodging, setEditingLodging] = useState({});
   const [deletingMember, setDeletingMember] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', or null
   const btnRef = useRef(null);
@@ -1055,25 +1218,65 @@ export default function App() {
               {openDays.includes('arrival-flight') && (
                 <div style={{ padding: '24px', borderTop: '1px solid #f0f0f0' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Airline</label><input type="text" value={data.flights?.arrival?.airline || ''} onChange={e => updateField('flights.arrival.airline', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Flight Number</label><input type="text" value={data.flights?.arrival?.flightNumber || ''} onChange={e => updateField('flights.arrival.flightNumber', e.target.value)} style={inputStyle} /></div>
+                    <EditableField
+                      label="Airline"
+                      value={data.flights?.arrival?.airline}
+                      placeholder="Allegiant Airlines"
+                      onSave={(val) => updateField('flights.arrival.airline', val)}
+                    />
+                    <EditableField
+                      label="Flight Number"
+                      value={data.flights?.arrival?.flightNumber}
+                      placeholder="2967"
+                      onSave={(val) => updateField('flights.arrival.flightNumber', val)}
+                    />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>From</label><input type="text" value={data.flights?.arrival?.departureAirport || ''} onChange={e => updateField('flights.arrival.departureAirport', e.target.value)} placeholder="SBN" style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>To</label><input type="text" value={data.flights?.arrival?.arrivalAirport || ''} onChange={e => updateField('flights.arrival.arrivalAirport', e.target.value)} placeholder="MCO" style={inputStyle} /></div>
+                    <EditableField
+                      label="From"
+                      value={data.flights?.arrival?.departureAirport}
+                      placeholder="SBN"
+                      onSave={(val) => updateField('flights.arrival.departureAirport', val)}
+                    />
+                    <EditableField
+                      label="To"
+                      value={data.flights?.arrival?.arrivalAirport}
+                      placeholder="MCO"
+                      onSave={(val) => updateField('flights.arrival.arrivalAirport', val)}
+                    />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Date</label><input type="date" value={data.flights?.arrival?.date || ''} onChange={e => updateField('flights.arrival.date', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Departure Time</label><input type="text" value={data.flights?.arrival?.departureTime || ''} onChange={e => updateField('flights.arrival.departureTime', e.target.value)} placeholder="9:39 AM" style={inputStyle} /></div>
+                    <EditableField
+                      label="Date"
+                      value={data.flights?.arrival?.date}
+                      type="date"
+                      dateFormat={(val) => val ? new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                      onSave={(val) => updateField('flights.arrival.date', val)}
+                    />
+                    <EditableField
+                      label="Departure Time"
+                      value={data.flights?.arrival?.departureTime}
+                      placeholder="9:39 AM"
+                      onSave={(val) => updateField('flights.arrival.departureTime', val)}
+                    />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Time</label><input type="text" value={data.flights?.arrival?.arrivalTime || ''} onChange={e => updateField('flights.arrival.arrivalTime', e.target.value)} placeholder="12:03 PM" style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Gate / Terminal</label><input type="text" value={data.flights?.arrival?.gate ? `${data.flights.arrival.gate}${data.flights.arrival.terminal ? ` / ${data.flights.arrival.terminal}` : ''}` : ''} onChange={e => {
-                      const parts = e.target.value.split(' / ');
-                      updateField('flights.arrival.gate', parts[0] || '');
-                      if (parts[1]) updateField('flights.arrival.terminal', parts[1]);
-                    }} placeholder="Will update automatically" style={inputStyle} disabled />
-                    </div>
+                    <EditableField
+                      label="Arrival Time"
+                      value={data.flights?.arrival?.arrivalTime}
+                      placeholder="12:03 PM"
+                      onSave={(val) => updateField('flights.arrival.arrivalTime', val)}
+                    />
+                    <EditableField
+                      label="Gate / Terminal"
+                      value={data.flights?.arrival?.gate ? `${data.flights.arrival.gate}${data.flights.arrival.terminal ? ` / ${data.flights.arrival.terminal}` : ''}` : ''}
+                      placeholder="Will update automatically"
+                      onSave={(val) => {
+                        const parts = val.split(' / ');
+                        updateField('flights.arrival.gate', parts[0] || '');
+                        if (parts[1]) updateField('flights.arrival.terminal', parts[1]);
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -1131,25 +1334,65 @@ export default function App() {
               {openDays.includes('departure-flight') && (
                 <div style={{ padding: '24px', borderTop: '1px solid #f0f0f0' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Airline</label><input type="text" value={data.flights?.departure?.airline || ''} onChange={e => updateField('flights.departure.airline', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Flight Number</label><input type="text" value={data.flights?.departure?.flightNumber || ''} onChange={e => updateField('flights.departure.flightNumber', e.target.value)} style={inputStyle} /></div>
+                    <EditableField
+                      label="Airline"
+                      value={data.flights?.departure?.airline}
+                      placeholder="Allegiant Airlines"
+                      onSave={(val) => updateField('flights.departure.airline', val)}
+                    />
+                    <EditableField
+                      label="Flight Number"
+                      value={data.flights?.departure?.flightNumber}
+                      placeholder="2967"
+                      onSave={(val) => updateField('flights.departure.flightNumber', val)}
+                    />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>From</label><input type="text" value={data.flights?.departure?.departureAirport || ''} onChange={e => updateField('flights.departure.departureAirport', e.target.value)} placeholder="MCO" style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>To</label><input type="text" value={data.flights?.departure?.arrivalAirport || ''} onChange={e => updateField('flights.departure.arrivalAirport', e.target.value)} placeholder="SBN" style={inputStyle} /></div>
+                    <EditableField
+                      label="From"
+                      value={data.flights?.departure?.departureAirport}
+                      placeholder="MCO"
+                      onSave={(val) => updateField('flights.departure.departureAirport', val)}
+                    />
+                    <EditableField
+                      label="To"
+                      value={data.flights?.departure?.arrivalAirport}
+                      placeholder="SBN"
+                      onSave={(val) => updateField('flights.departure.arrivalAirport', val)}
+                    />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Date</label><input type="date" value={data.flights?.departure?.date || ''} onChange={e => updateField('flights.departure.date', e.target.value)} style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Departure Time</label><input type="text" value={data.flights?.departure?.departureTime || ''} onChange={e => updateField('flights.departure.departureTime', e.target.value)} placeholder="6:15 AM" style={inputStyle} /></div>
+                    <EditableField
+                      label="Date"
+                      value={data.flights?.departure?.date}
+                      type="date"
+                      dateFormat={(val) => val ? new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                      onSave={(val) => updateField('flights.departure.date', val)}
+                    />
+                    <EditableField
+                      label="Departure Time"
+                      value={data.flights?.departure?.departureTime}
+                      placeholder="6:15 AM"
+                      onSave={(val) => updateField('flights.departure.departureTime', val)}
+                    />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Time</label><input type="text" value={data.flights?.departure?.arrivalTime || ''} onChange={e => updateField('flights.departure.arrivalTime', e.target.value)} placeholder="8:44 AM" style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Gate / Terminal</label><input type="text" value={data.flights?.departure?.gate ? `${data.flights.departure.gate}${data.flights.departure.terminal ? ` / ${data.flights.departure.terminal}` : ''}` : ''} onChange={e => {
-                      const parts = e.target.value.split(' / ');
-                      updateField('flights.departure.gate', parts[0] || '');
-                      if (parts[1]) updateField('flights.departure.terminal', parts[1]);
-                    }} placeholder="Will update automatically" style={inputStyle} disabled />
-                    </div>
+                    <EditableField
+                      label="Arrival Time"
+                      value={data.flights?.departure?.arrivalTime}
+                      placeholder="8:44 AM"
+                      onSave={(val) => updateField('flights.departure.arrivalTime', val)}
+                    />
+                    <EditableField
+                      label="Gate / Terminal"
+                      value={data.flights?.departure?.gate ? `${data.flights.departure.gate}${data.flights.departure.terminal ? ` / ${data.flights.departure.terminal}` : ''}` : ''}
+                      placeholder="Will update automatically"
+                      onSave={(val) => {
+                        const parts = val.split(' / ');
+                        updateField('flights.departure.gate', parts[0] || '');
+                        if (parts[1]) updateField('flights.departure.terminal', parts[1]);
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -1167,126 +1410,75 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #52c41a, #73d13d)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🔑</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 4 }}>Check-in</div>
-                  {data.lodging.checkIn && !editingLodging.checkIn ? (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.checkIn}</div>
-                      <button onClick={() => setEditingLodging({...editingLodging, checkIn: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 12, padding: '4px 8px' }}>Edit</button>
-                    </div>
-                  ) : (
-                    <input 
-                      type="text" 
-                      value={data.lodging.checkIn || ''} 
-                      onChange={e => updateField('lodging.checkIn', e.target.value)} 
-                      onBlur={() => setEditingLodging({...editingLodging, checkIn: false})}
-                      onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, checkIn: false})}
-                      placeholder="4:00 PM" 
-                      style={{ ...inputStyle, margin: 0, padding: '8px 12px', fontSize: 18, fontWeight: 600 }} 
-                      autoFocus={editingLodging.checkIn}
-                    />
-                  )}
+                  <EditableField
+                    label="Check-in"
+                    value={data.lodging.checkIn}
+                    placeholder="4:00 PM"
+                    onSave={(val) => updateField('lodging.checkIn', val)}
+                  />
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #f5576c, #ff7875)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🚪</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 4 }}>Check-out</div>
-                  {data.lodging.checkOut && !editingLodging.checkOut ? (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.checkOut}</div>
-                      <button onClick={() => setEditingLodging({...editingLodging, checkOut: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 12, padding: '4px 8px' }}>Edit</button>
-                    </div>
-                  ) : (
-                    <input 
-                      type="text" 
-                      value={data.lodging.checkOut || ''} 
-                      onChange={e => updateField('lodging.checkOut', e.target.value)} 
-                      onBlur={() => setEditingLodging({...editingLodging, checkOut: false})}
-                      onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, checkOut: false})}
-                      placeholder="10:00 AM" 
-                      style={{ ...inputStyle, margin: 0, padding: '8px 12px', fontSize: 18, fontWeight: 600 }} 
-                      autoFocus={editingLodging.checkOut}
-                    />
-                  )}
+                  <EditableField
+                    label="Check-out"
+                    value={data.lodging.checkOut}
+                    placeholder="10:00 AM"
+                    onSave={(val) => updateField('lodging.checkOut', val)}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Property Information - Display when filled, input when empty */}
-            {data.lodging.name && !editingLodging.name ? (
-              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Property Name</div>
-                  <div style={{ fontSize: 20, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.name}</div>
-                </div>
-                <button onClick={() => setEditingLodging({...editingLodging, name: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 14, padding: '4px 8px' }}>Edit</button>
-              </div>
-            ) : editingLodging.name ? (
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Property Name</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="text" value={data.lodging.name || ''} onChange={e => updateField('lodging.name', e.target.value)} onBlur={() => setEditingLodging({...editingLodging, name: false})} onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, name: false})} style={{ ...inputStyle, flex: 1 }} autoFocus />
-                  <button onClick={() => setEditingLodging({...editingLodging, name: false})} style={btnSecondary}>Done</button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Property Name</label>
-                <input type="text" value={data.lodging.name || ''} onChange={e => updateField('lodging.name', e.target.value, 'updated property name')} placeholder="e.g., Magical Villa" style={inputStyle} />
-              </div>
-            )}
+            {/* Property Information */}
+            <div style={{ marginBottom: 20 }}>
+              <EditableField
+                label="Property Name"
+                value={data.lodging.name}
+                placeholder="e.g., Magical Villa"
+                onSave={(val) => updateField('lodging.name', val)}
+              />
+            </div>
 
-            {data.lodging.address && !editingLodging.address ? (
-              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Address</div>
-                  <div style={{ fontSize: 16, color: '#4a4a6a', marginBottom: 8 }}>{data.lodging.address}</div>
+            <div style={{ marginBottom: 20 }}>
+              <EditableField
+                label="Address"
+                value={data.lodging.address}
+                placeholder="123 Magic Way, Kissimmee, FL"
+                onSave={(val) => updateField('lodging.address', val)}
+              />
+              {data.lodging.address && (
+                <div style={{ marginTop: 8 }}>
                   <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.lodging.address)}`} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '8px 16px' }}>📍 Open Maps</a>
                 </div>
-                <button onClick={() => setEditingLodging({...editingLodging, address: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 14, padding: '4px 8px' }}>Edit</button>
-              </div>
-            ) : editingLodging.address ? (
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Address</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="text" value={data.lodging.address || ''} onChange={e => updateField('lodging.address', e.target.value)} onBlur={() => setEditingLodging({...editingLodging, address: false})} onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, address: false})} style={{ ...inputStyle, flex: 1 }} autoFocus />
-                  <button onClick={() => setEditingLodging({...editingLodging, address: false})} style={btnSecondary}>Done</button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Address</label>
-                <input type="text" value={data.lodging.address || ''} onChange={e => updateField('lodging.address', e.target.value, 'updated address')} placeholder="123 Magic Way, Kissimmee, FL" style={inputStyle} />
-              </div>
-            )}
+              )}
+            </div>
 
-            {data.lodging.vrboLink && !editingLodging.vrboLink ? (
-              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>VRBO Listing</div>
+            <div style={{ marginBottom: 20 }}>
+              <EditableField
+                label="VRBO Link"
+                value={data.lodging.vrboLink}
+                type="url"
+                placeholder="https://www.vrbo.com/..."
+                onSave={(val) => updateField('lodging.vrboLink', val)}
+              />
+              {data.lodging.vrboLink && (
+                <div style={{ marginTop: 8 }}>
                   <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#667eea', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>🔗 View Listing →</a>
                 </div>
-                <button onClick={() => setEditingLodging({...editingLodging, vrboLink: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 14, padding: '4px 8px' }}>Edit</button>
-              </div>
-            ) : editingLodging.vrboLink ? (
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>VRBO Link</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="url" value={data.lodging.vrboLink || ''} onChange={e => updateField('lodging.vrboLink', e.target.value)} onBlur={() => setEditingLodging({...editingLodging, vrboLink: false})} onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, vrboLink: false})} style={{ ...inputStyle, flex: 1 }} autoFocus />
-                  <button onClick={() => setEditingLodging({...editingLodging, vrboLink: false})} style={btnSecondary}>Done</button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>VRBO Link</label>
-                <input type="url" value={data.lodging.vrboLink || ''} onChange={e => updateField('lodging.vrboLink', e.target.value, 'updated VRBO link')} placeholder="https://www.vrbo.com/..." style={inputStyle} />
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Notes - Always editable */}
             <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #f0e6ff' }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Important Information</label>
-              <textarea value={data.lodging.notes} onChange={e => updateField('lodging.notes', e.target.value, 'updated lodging notes')} placeholder="Gate code, wifi password, parking instructions, pool rules..." style={textareaStyle} />
+              <EditableField
+                label="Important Information"
+                value={data.lodging.notes}
+                placeholder="Gate code, wifi password, parking instructions, pool rules..."
+                textarea={true}
+                onSave={(val) => updateField('lodging.notes', val)}
+              />
             </div>
           </div>
         </div>}
