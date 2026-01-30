@@ -1393,11 +1393,23 @@ export default function App() {
   const btnPrimary = { padding: '12px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' };
   const btnSecondary = { padding: '12px 20px', borderRadius: 10, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 500, fontSize: 14, cursor: 'pointer' };
 
+  // Don't render main content until data is loaded
+  if (!data || loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #fdf6f9 0%, #fff 15%, #fff 85%, #f0e6ff 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', color: '#4a4a6a' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 24, marginBottom: 12 }}>✨</div>
+          <div>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #fdf6f9 0%, #fff 15%, #fff 85%, #f0e6ff 100%)', fontFamily: 'system-ui, sans-serif', color: '#4a4a6a' }}>
       <FloatingSparkles />
       <header style={{ background: '#fff', borderBottom: '1px solid #f0e6ff', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, position: 'relative', zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><MagicCastle size={45} /><div><h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{data.tripInfo.title}</h1><p style={{ margin: '2px 0 0', color: '#764ba2', fontSize: 13 }}>✨ {data.tripInfo.dates} ✨</p></div></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><MagicCastle size={45} /><div><h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{data?.tripInfo?.title || 'Disney Family Trip 2026'}</h1><p style={{ margin: '2px 0 0', color: '#764ba2', fontSize: 13 }}>✨ {data?.tripInfo?.dates || 'June 22–28, 2026'} ✨</p></div></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {saveStatus === 'saving' && <span style={{ padding: '6px 12px', borderRadius: 20, background: '#fff7e6', color: '#d48806', fontSize: 13 }}>Saving...</span>}
           {saveStatus === 'saved' && <span style={{ padding: '6px 12px', borderRadius: 20, background: '#f6ffed', color: '#52c41a', fontSize: 13 }}>Saved</span>}
@@ -1405,7 +1417,7 @@ export default function App() {
         </div>
       </header>
 
-      {data.announcements.length > 0 && <div style={{ background: 'linear-gradient(90deg, #fff7e6, #fffbe6)', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #ffe58f', position: 'relative', zIndex: 10 }}><span style={{ flex: 1, color: '#d48806' }}>{data.announcements[0].text}</span><span style={{ color: '#888', fontSize: 13 }}>— {data.announcements[0].author}</span></div>}
+      {data?.announcements?.length > 0 && <div style={{ background: 'linear-gradient(90deg, #fff7e6, #fffbe6)', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #ffe58f', position: 'relative', zIndex: 10 }}><span style={{ flex: 1, color: '#d48806' }}>{data.announcements[0].text}</span><span style={{ color: '#888', fontSize: 13 }}>— {data.announcements[0].author}</span></div>}
 
       <nav style={{ display: 'flex', gap: 8, padding: '16px 24px', background: '#fff', borderBottom: '1px solid #f0e6ff', overflowX: 'auto', position: 'relative', zIndex: 10, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin', scrollbarColor: '#ccc #f0f0f0' }}>
         {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderRadius: 10, border: '1px solid #e8e0f0', background: activeTab === t.id ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#fff', color: activeTab === t.id ? '#fff' : '#666', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: activeTab === t.id ? 600 : 400, minWidth: 'fit-content', flexShrink: 0 }}><span>{t.label}</span></button>)}
