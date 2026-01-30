@@ -402,28 +402,42 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
   const displayPhone = member.phone || '';
   const isComplete = member.firstName && member.lastName && member.phone;
 
-  const handleSave = () => {
-    // Batch all updates into a single state update
-    setData(p => {
-      const updated = JSON.parse(JSON.stringify(p));
-      const family = updated.families.find(f => f.id === familyId);
-      if (family) {
-        const memberIndex = family.members.findIndex(m => m.id === member.id);
-        if (memberIndex !== -1) {
-          family.members[memberIndex] = {
-            ...family.members[memberIndex],
-            firstName: editData.firstName,
-            lastName: editData.lastName,
-            birthdate: editData.birthdate,
-            phone: editData.phone,
-            emergencyContactName: editData.emergencyContactName,
-            emergencyContactPhone: editData.emergencyContactPhone,
-            otherInfo: editData.otherInfo
-          };
+  const handleSave = (e) => {
+    e?.stopPropagation();
+    // Batch all updates into a single state update using setData prop
+    if (setData) {
+      setData(p => {
+        if (!p || !p.families) return p;
+        const updated = JSON.parse(JSON.stringify(p));
+        const family = updated.families.find(f => f.id === familyId);
+        if (family) {
+          const memberIndex = family.members.findIndex(m => m.id === member.id);
+          if (memberIndex !== -1) {
+            family.members[memberIndex] = {
+              ...family.members[memberIndex],
+              firstName: editData.firstName,
+              lastName: editData.lastName,
+              birthdate: editData.birthdate,
+              phone: editData.phone,
+              emergencyContactName: editData.emergencyContactName,
+              emergencyContactPhone: editData.emergencyContactPhone,
+              otherInfo: editData.otherInfo,
+              lastEditedBy: currentUser?.name
+            };
+          }
         }
-      }
-      return updated;
-    });
+        return updated;
+      });
+    } else {
+      // Fallback to individual updates if setData not available
+      onUpdateMember(familyId, member.id, 'firstName', editData.firstName);
+      onUpdateMember(familyId, member.id, 'lastName', editData.lastName);
+      onUpdateMember(familyId, member.id, 'birthdate', editData.birthdate);
+      onUpdateMember(familyId, member.id, 'phone', editData.phone);
+      onUpdateMember(familyId, member.id, 'emergencyContactName', editData.emergencyContactName);
+      onUpdateMember(familyId, member.id, 'emergencyContactPhone', editData.emergencyContactPhone);
+      onUpdateMember(familyId, member.id, 'otherInfo', editData.otherInfo);
+    }
     setIsEditing(false);
   };
 
@@ -587,7 +601,7 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
                 <textarea value={editData.otherInfo} onChange={e => setEditData({...editData, otherInfo: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ ...inputStyle, padding: '8px 12px', fontSize: 13, resize: 'vertical', minHeight: 60 }} />
               </div>
               <div style={{ display: 'flex', gap: 6, marginTop: 12 }} onClick={(e) => e.stopPropagation()}>
-                <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Save</button>
+                <button onClick={handleSave} style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Save</button>
                 <button onClick={(e) => { e.stopPropagation(); handleCancel(); }} style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
               </div>
             </>
