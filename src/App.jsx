@@ -675,27 +675,23 @@ export default function App() {
     setTrackingFlights(prev => ({ ...prev, [flightType]: true }));
     
     try {
-      // Use FlightAware public tracking URL - we'll create a simple status checker
-      // For now, we'll simulate tracking and update gate/terminal info
-      // In production, you'd use a real flight API like AviationStack
+      // Get airline IATA code
+      const airlineCode = flight.airline.includes('Allegiant') ? 'G4' : 
+                         flight.airline.includes('Delta') ? 'DL' :
+                         flight.airline.includes('Southwest') ? 'WN' :
+                         flight.airline.includes('American') ? 'AA' :
+                         flight.airline.includes('United') ? 'UA' : '';
       
-      const airlineCode = flight.airline.includes('Allegiant') ? 'G4' : '';
-      const flightCode = `${airlineCode}${flight.flightNumber}`;
+      const flightCode = airlineCode ? `${airlineCode}${flight.flightNumber}` : flight.flightNumber;
+      const trackingUrl = `https://www.flightaware.com/live/flight/${flightCode}`;
       
-      // Simulate flight status check (replace with real API call)
-      // For Allegiant flights, we can check FlightAware or use a proxy API
-      const response = await fetch(`https://api.flightstats.com/flex/flightstatus/rest/v2/json/flight/status/${airlineCode}/${flight.flightNumber}/dep/${flight.date}?appId=YOUR_APP_ID&appKey=YOUR_APP_KEY`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      }).catch(() => null);
-      
-      // For now, update with manual tracking link and status
+      // Update flight with tracking URL and status
+      // Note: For real-time status, you'd need a flight API key
+      // This provides the tracking link and updates timestamp
       const flightStatus = {
-        status: 'Scheduled',
-        gate: flight.gate || 'TBD',
-        terminal: flight.terminal || 'TBD',
-        lastUpdated: new Date().toISOString(),
-        trackingUrl: `https://www.flightaware.com/live/flight/${flightCode}`
+        status: 'Tracked',
+        trackingUrl: trackingUrl,
+        lastUpdated: new Date().toISOString()
       };
       
       setData(p => {
@@ -715,24 +711,32 @@ export default function App() {
     }
   };
   
-  // Auto-track flights on component mount if flight date is today or tomorrow
+  // Auto-update flight tracking every 5 minutes for flights today or tomorrow
   useEffect(() => {
     if (!data || !data.flights) return;
     
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     
+    const intervals = [];
+    
     Object.keys(data.flights).forEach(flightType => {
       const flight = data.flights[flightType];
       if (flight && flight.date && (flight.date === today || flight.date === tomorrow)) {
         // Auto-track flights that are today or tomorrow
         const checkInterval = setInterval(() => {
-          trackFlight(flightType);
+          if (flight.flightNumber && flight.airline) {
+            trackFlight(flightType);
+          }
         }, 300000); // Check every 5 minutes
         
-        return () => clearInterval(checkInterval);
+        intervals.push(checkInterval);
       }
     });
+    
+    return () => {
+      intervals.forEach(interval => clearInterval(interval));
+    };
   }, [data?.flights]);
 
   if (loading) return (
