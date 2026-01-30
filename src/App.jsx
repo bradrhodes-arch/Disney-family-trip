@@ -541,40 +541,40 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
             </>
           ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>First Name</label>
-                  <input type="text" value={editData.firstName} onChange={e => setEditData({...editData, firstName: e.target.value})} placeholder="First name" style={inputStyle} />
+                  <input type="text" value={editData.firstName} onChange={e => setEditData({...editData, firstName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="First name" style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Last Name</label>
-                  <input type="text" value={editData.lastName} onChange={e => setEditData({...editData, lastName: e.target.value})} placeholder="Last name" style={inputStyle} />
+                  <input type="text" value={editData.lastName} onChange={e => setEditData({...editData, lastName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Last name" style={inputStyle} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Birthdate</label>
-                  <input type="date" value={editData.birthdate} onChange={e => setEditData({...editData, birthdate: e.target.value})} style={inputStyle} />
+                  <input type="date" value={editData.birthdate} onChange={e => setEditData({...editData, birthdate: e.target.value})} onClick={(e) => e.stopPropagation()} style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Phone Number</label>
-                  <input type="tel" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} placeholder="(555) 123-4567" style={inputStyle} />
+                  <input type="tel" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="(555) 123-4567" style={inputStyle} />
                 </div>
               </div>
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <input type="text" value={editData.emergencyContactName} onChange={e => setEditData({...editData, emergencyContactName: e.target.value})} placeholder="Name" style={inputStyle} />
-                  <input type="tel" value={editData.emergencyContactPhone} onChange={e => setEditData({...editData, emergencyContactPhone: e.target.value})} placeholder="Phone number" style={inputStyle} />
+                  <input type="text" value={editData.emergencyContactName} onChange={e => setEditData({...editData, emergencyContactName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Name" style={inputStyle} />
+                  <input type="tel" value={editData.emergencyContactPhone} onChange={e => setEditData({...editData, emergencyContactPhone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Phone number" style={inputStyle} />
                 </div>
               </div>
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
-                <textarea value={editData.otherInfo} onChange={e => setEditData({...editData, otherInfo: e.target.value})} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
+                <textarea value={editData.otherInfo} onChange={e => setEditData({...editData, otherInfo: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
               </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-                <button onClick={handleSave} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Save</button>
-                <button onClick={handleCancel} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+              <div style={{ display: 'flex', gap: 8, marginTop: 20 }} onClick={(e) => e.stopPropagation()}>
+                <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Save</button>
+                <button onClick={(e) => { e.stopPropagation(); handleCancel(); }} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
               </div>
             </>
           )}
@@ -800,22 +800,48 @@ export default function App() {
     };
   }, []);
 
-  const save = useCallback(async (d) => {
-    setSaveStatus('saving');
+  const save = useCallback(async (d, showStatus = false) => {
+    if (showStatus) {
+      setSaveStatus('saving');
+    }
     try { 
       await storage.set(STORAGE_KEY, JSON.stringify(d)); 
-      setSaveStatus('saved');
-      // Clear saved status after 2 seconds
-      setTimeout(() => setSaveStatus(null), 2000);
+      if (showStatus) {
+        setSaveStatus('saved');
+        // Clear saved status after 2 seconds
+        setTimeout(() => setSaveStatus(null), 2000);
+      }
     } catch {
-      setSaveStatus(null);
+      if (showStatus) {
+        setSaveStatus(null);
+      }
     }
   }, []);
 
+  // Debounced auto-save - only save when data actually changes, not on every render
+  // This auto-save runs silently (no status indicator) to prevent flashing
+  const saveTimeoutRef = useRef(null);
+  const lastSavedDataRef = useRef(null);
   useEffect(() => {
     if (data && !loading && currentUser) {
-      const t = setTimeout(() => save(data), 1000);
-      return () => clearTimeout(t);
+      // Only auto-save if data actually changed (compare stringified versions)
+      const dataStr = JSON.stringify(data);
+      if (dataStr !== lastSavedDataRef.current) {
+        // Clear any existing timeout
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        // Set new timeout - don't show saving status for auto-saves
+        saveTimeoutRef.current = setTimeout(() => {
+          save(data, false); // false = don't show status
+          lastSavedDataRef.current = dataStr;
+        }, 1500);
+        return () => {
+          if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+          }
+        };
+      }
     }
   }, [data, loading, save, currentUser]);
 
@@ -1015,7 +1041,23 @@ export default function App() {
   const addPoll = (poll) => { setData(p => ({ ...p, polls: [...p.polls, { id: Date.now(), question: poll.question, options: poll.options.map(opt => ({ text: opt, votes: 0, voters: [] })), addedBy: currentUser?.name, createdAt: new Date().toISOString() }] })); addHistory(`created poll: ${poll.question}`); };
   const votePoll = (pollId, optionIndex) => { setData(p => ({ ...p, polls: p.polls.map(poll => poll.id === pollId ? { ...poll, options: poll.options.map((opt, idx) => idx === optionIndex && !opt.voters.includes(currentUser?.name) ? { ...opt, votes: opt.votes + 1, voters: [...opt.voters, currentUser?.name] } : opt) } : poll) })); };
   const removePoll = (pollId) => { setData(p => ({ ...p, polls: p.polls.filter(poll => poll.id !== pollId) })); addHistory('removed poll'); };
-  const updateField = (path, val, desc) => { setData(p => { const d = JSON.parse(JSON.stringify(p)); const k = path.split('.'); let c = d; for (let i = 0; i < k.length - 1; i++) c = c[k[i]]; c[k[k.length - 1]] = val; return d; }); if (desc) addHistory(desc); };
+  const updateField = (path, val, desc) => { 
+    setData(p => { 
+      const d = JSON.parse(JSON.stringify(p)); 
+      const k = path.split('.'); 
+      let c = d; 
+      for (let i = 0; i < k.length - 1; i++) c = c[k[i]]; 
+      c[k[k.length - 1]] = val; 
+      return d; 
+    }); 
+    if (desc) addHistory(desc);
+    // Trigger save with status for user-initiated changes
+    setTimeout(() => {
+      if (data && !loading && currentUser) {
+        save(data, true);
+      }
+    }, 100);
+  };
 
 
   const trackFlight = async (flightType) => {
@@ -1575,7 +1617,7 @@ export default function App() {
               />
               {data.lodging.vrboLink && (
                 <div style={{ marginTop: 8 }}>
-                  <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#667eea', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>🔗 View Listing →</a>
+                  <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#667eea', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>🔗 View VRBO Listing →</a>
                 </div>
               )}
             </div>
