@@ -493,19 +493,29 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
   const isComplete = member.firstName && member.lastName && member.phone;
   
   // Calculate age at trip time - safely handle missing tripData
-  let tripStartDate = '2026-06-22';
+  let ageAtTrip = null;
+  let isChild = false;
+  let isUnder3 = false;
+  let memberType = 'Adult';
+  
   try {
+    let tripStartDate = '2026-06-22';
     if (tripData) {
       tripStartDate = getTripStartDate(tripData);
     }
+    
+    if (member.birthdate) {
+      ageAtTrip = calculateAgeAtTrip(member.birthdate, tripStartDate);
+      if (ageAtTrip !== null) {
+        isChild = ageAtTrip < 21;
+        isUnder3 = ageAtTrip < 3;
+        memberType = isChild ? 'Child' : 'Adult';
+      }
+    }
   } catch (e) {
-    console.error('Error getting trip start date:', e);
+    console.error('Error calculating age:', e);
+    // Keep default values (all false/null)
   }
-  
-  const ageAtTrip = member.birthdate ? calculateAgeAtTrip(member.birthdate, tripStartDate) : null;
-  const isChild = ageAtTrip !== null && ageAtTrip < 21;
-  const isUnder3 = ageAtTrip !== null && ageAtTrip < 3;
-  const memberType = isChild ? 'Child' : 'Adult';
 
   const handleSave = (e) => {
     e?.stopPropagation();
