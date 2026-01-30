@@ -1043,12 +1043,14 @@ export default function App() {
   const removePoll = (pollId) => { setData(p => ({ ...p, polls: p.polls.filter(poll => poll.id !== pollId) })); addHistory('removed poll'); };
   const updateFieldSaveTimeoutRef = useRef(null);
   const updateField = (path, val, desc) => { 
+    let updatedData = null;
     setData(p => { 
       const d = JSON.parse(JSON.stringify(p)); 
       const k = path.split('.'); 
       let c = d; 
       for (let i = 0; i < k.length - 1; i++) c = c[k[i]]; 
       c[k[k.length - 1]] = val; 
+      updatedData = d;
       return d; 
     }); 
     if (desc) addHistory(desc);
@@ -1057,12 +1059,8 @@ export default function App() {
       clearTimeout(updateFieldSaveTimeoutRef.current);
     }
     updateFieldSaveTimeoutRef.current = setTimeout(() => {
-      if (data && !loading && currentUser) {
-        // Get latest data
-        setData(currentData => {
-          save(currentData, true);
-          return currentData;
-        });
+      if (updatedData && !loading && currentUser) {
+        save(updatedData, true);
       }
     }, 800);
   };
