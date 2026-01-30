@@ -572,33 +572,33 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>First Name</label>
-                  <input type="text" value={editData.firstName} onChange={e => setEditData({...editData, firstName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="First name" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
+                  <input type="text" value={editData.firstName} onChange={e => setEditData({...editData, firstName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="First name" style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Last Name</label>
-                  <input type="text" value={editData.lastName} onChange={e => setEditData({...editData, lastName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Last name" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
+                  <input type="text" value={editData.lastName} onChange={e => setEditData({...editData, lastName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Last name" style={inputStyle} />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Birthdate</label>
-                  <input type="date" value={editData.birthdate} onChange={e => setEditData({...editData, birthdate: e.target.value})} onClick={(e) => e.stopPropagation()} style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
+                  <input type="date" value={editData.birthdate} onChange={e => setEditData({...editData, birthdate: e.target.value})} onClick={(e) => e.stopPropagation()} style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Phone Number</label>
-                  <input type="tel" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="(555) 123-4567" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
+                  <input type="tel" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="(555) 123-4567" style={inputStyle} />
                 </div>
               </div>
               <div style={{ marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input type="text" value={editData.emergencyContactName} onChange={e => setEditData({...editData, emergencyContactName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Name" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
-                  <input type="tel" value={editData.emergencyContactPhone} onChange={e => setEditData({...editData, emergencyContactPhone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Phone number" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
+                  <input type="text" value={editData.emergencyContactName} onChange={e => setEditData({...editData, emergencyContactName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Name" style={inputStyle} />
+                  <input type="tel" value={editData.emergencyContactPhone} onChange={e => setEditData({...editData, emergencyContactPhone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Phone number" style={inputStyle} />
                 </div>
               </div>
               <div style={{ marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Other Important Info</label>
-                <textarea value={editData.otherInfo} onChange={e => setEditData({...editData, otherInfo: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ ...inputStyle, padding: '8px 12px', fontSize: 13, resize: 'vertical', minHeight: 60 }} />
+                <textarea value={editData.otherInfo} onChange={e => setEditData({...editData, otherInfo: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} />
               </div>
               <div style={{ display: 'flex', gap: 6, marginTop: 12 }} onClick={(e) => e.stopPropagation()}>
                 <button onClick={handleSave} style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Save</button>
