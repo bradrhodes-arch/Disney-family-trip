@@ -50,6 +50,10 @@ const storage = {
 
 const defaultData = {
   tripInfo: { title: "Disney Family Trip 2026", dates: "June 22–28, 2026", groupSize: 15, password: "Disney2026" },
+  flights: {
+    arrival: { airline: "", flightNumber: "", departureAirport: "", arrivalAirport: "", departureTime: "", arrivalTime: "", terminal: "", gate: "" },
+    departure: { airline: "", flightNumber: "", departureAirport: "", arrivalAirport: "", departureTime: "", arrivalTime: "", terminal: "", gate: "" }
+  },
   lodging: { name: "", address: "", vrboLink: "", checkIn: "4:00 PM", checkOut: "10:00 AM", notes: "" },
   days: [
     { id: 1, date: "Sun, Jun 22", label: "Arrival Day", theme: "arrival", activities: [
@@ -111,6 +115,7 @@ PRO TIP: Ride Flight of Passage right before park closes for shorter waits!`,
       voters: []
     }
   ],
+  polls: [],
   announcements: [],
   editHistory: []
 };
@@ -412,6 +417,30 @@ export default function App() {
         if (r?.value) {
           const p = JSON.parse(r.value);
           p.days = p.days.map(d => ({ ...d, activities: d.activities.map(a => typeof a === 'string' ? { text: a, editedBy: null } : a) }));
+          
+          // Ensure default recommendations are included
+          if (!p.recommendations || p.recommendations.length === 0) {
+            p.recommendations = defaultData.recommendations;
+          } else {
+            // Add default recommendations if they don't exist
+            const defaultRecIds = defaultData.recommendations.map(r => r.id);
+            const existingRecIds = p.recommendations.map(r => r.id);
+            const missingRecs = defaultData.recommendations.filter(r => !existingRecIds.includes(r.id));
+            if (missingRecs.length > 0) {
+              p.recommendations = [...p.recommendations, ...missingRecs];
+            }
+          }
+          
+          // Ensure flights structure exists
+          if (!p.flights) {
+            p.flights = defaultData.flights;
+          }
+          
+          // Ensure polls array exists
+          if (!p.polls) {
+            p.polls = [];
+          }
+          
           setData(p);
         } else {
           setData(defaultData);
@@ -633,6 +662,9 @@ export default function App() {
   const addRec = (r) => { setData(p => ({ ...p, recommendations: [...p.recommendations, { id: Date.now(), ...r, votes: 0, addedBy: currentUser?.name, voters: [] }] })); addHistory(`added tip: ${r.title}`); };
   const voteRec = (id) => { setData(p => ({ ...p, recommendations: p.recommendations.map(r => r.id === id && !(r.voters || []).includes(currentUser?.name) ? { ...r, votes: r.votes + 1, voters: [...(r.voters || []), currentUser?.name] } : r) })); };
   const addAnn = (text) => { setData(p => ({ ...p, announcements: [{ id: Date.now(), text, author: currentUser?.name, time: new Date().toISOString() }, ...p.announcements] })); addHistory('posted announcement'); };
+  const addPoll = (poll) => { setData(p => ({ ...p, polls: [...p.polls, { id: Date.now(), question: poll.question, options: poll.options.map(opt => ({ text: opt, votes: 0, voters: [] })), addedBy: currentUser?.name, createdAt: new Date().toISOString() }] })); addHistory(`created poll: ${poll.question}`); };
+  const votePoll = (pollId, optionIndex) => { setData(p => ({ ...p, polls: p.polls.map(poll => poll.id === pollId ? { ...poll, options: poll.options.map((opt, idx) => idx === optionIndex && !opt.voters.includes(currentUser?.name) ? { ...opt, votes: opt.votes + 1, voters: [...opt.voters, currentUser?.name] } : opt) } : poll) })); };
+  const removePoll = (pollId) => { setData(p => ({ ...p, polls: p.polls.filter(poll => poll.id !== pollId) })); addHistory('removed poll'); };
   const updateField = (path, val, desc) => { setData(p => { const d = JSON.parse(JSON.stringify(p)); const k = path.split('.'); let c = d; for (let i = 0; i < k.length - 1; i++) c = c[k[i]]; c[k[k.length - 1]] = val; return d; }); if (desc) addHistory(desc); };
 
   if (loading) return (
@@ -667,7 +699,7 @@ export default function App() {
     </div>
   );
 
-  const tabs = [{ id: 'itinerary', label: 'Itinerary', icon: '' }, { id: 'contacts', label: 'Family', icon: '' }, { id: 'lodging', label: 'Lodging', icon: '' }, { id: 'tips', label: 'Tips', icon: '' }, { id: 'emergency', label: 'Emergency', icon: '' }, { id: 'history', label: 'Activity', icon: '' }];
+  const tabs = [{ id: 'itinerary', label: 'Itinerary', icon: '' }, { id: 'contacts', label: 'Family', icon: '' }, { id: 'flights', label: 'Flights', icon: '' }, { id: 'lodging', label: 'Lodging', icon: '' }, { id: 'tips', label: 'Tips', icon: '' }, { id: 'polls', label: 'Polls', icon: '' }, { id: 'emergency', label: 'Emergency', icon: '' }, { id: 'history', label: 'Activity', icon: '' }];
   const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
   const textareaStyle = { ...inputStyle, resize: 'vertical', minHeight: 80, fontFamily: 'inherit' };
   const cardStyle = { background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' };
@@ -780,6 +812,53 @@ export default function App() {
           </div>
         </div>}
 
+        {activeTab === 'flights' && <div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Flight Information</h2>
+          <p style={{ color: '#888', marginBottom: 24 }}>Arrival and departure flight details</p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 20, marginBottom: 24 }}>
+            <div style={cardStyle}>
+              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#4a4a6a' }}>Arrival Flight</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Airline</label><input type="text" value={data.flights?.arrival?.airline || ''} onChange={e => updateField('flights.arrival.airline', e.target.value, 'updated arrival airline')} placeholder="e.g., Delta, Southwest" style={inputStyle} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Flight Number</label><input type="text" value={data.flights?.arrival?.flightNumber || ''} onChange={e => updateField('flights.arrival.flightNumber', e.target.value, 'updated arrival flight number')} placeholder="e.g., DL1234" style={inputStyle} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Departure Airport</label><input type="text" value={data.flights?.arrival?.departureAirport || ''} onChange={e => updateField('flights.arrival.departureAirport', e.target.value)} placeholder="e.g., IND" style={inputStyle} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Airport</label><input type="text" value={data.flights?.arrival?.arrivalAirport || ''} onChange={e => updateField('flights.arrival.arrivalAirport', e.target.value)} placeholder="e.g., MCO" style={inputStyle} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Departure Time</label><input type="text" value={data.flights?.arrival?.departureTime || ''} onChange={e => updateField('flights.arrival.departureTime', e.target.value)} placeholder="e.g., 8:00 AM" style={inputStyle} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Time</label><input type="text" value={data.flights?.arrival?.arrivalTime || ''} onChange={e => updateField('flights.arrival.arrivalTime', e.target.value)} placeholder="e.g., 11:30 AM" style={inputStyle} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Terminal</label><input type="text" value={data.flights?.arrival?.terminal || ''} onChange={e => updateField('flights.arrival.terminal', e.target.value)} placeholder="Terminal" style={inputStyle} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Gate</label><input type="text" value={data.flights?.arrival?.gate || ''} onChange={e => updateField('flights.arrival.gate', e.target.value)} placeholder="Gate" style={inputStyle} /></div>
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#4a4a6a' }}>Departure Flight</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Airline</label><input type="text" value={data.flights?.departure?.airline || ''} onChange={e => updateField('flights.departure.airline', e.target.value, 'updated departure airline')} placeholder="e.g., Delta, Southwest" style={inputStyle} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Flight Number</label><input type="text" value={data.flights?.departure?.flightNumber || ''} onChange={e => updateField('flights.departure.flightNumber', e.target.value, 'updated departure flight number')} placeholder="e.g., DL1234" style={inputStyle} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Departure Airport</label><input type="text" value={data.flights?.departure?.departureAirport || ''} onChange={e => updateField('flights.departure.departureAirport', e.target.value)} placeholder="e.g., MCO" style={inputStyle} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Airport</label><input type="text" value={data.flights?.departure?.arrivalAirport || ''} onChange={e => updateField('flights.departure.arrivalAirport', e.target.value)} placeholder="e.g., IND" style={inputStyle} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Departure Time</label><input type="text" value={data.flights?.departure?.departureTime || ''} onChange={e => updateField('flights.departure.departureTime', e.target.value)} placeholder="e.g., 2:00 PM" style={inputStyle} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Time</label><input type="text" value={data.flights?.departure?.arrivalTime || ''} onChange={e => updateField('flights.departure.arrivalTime', e.target.value)} placeholder="e.g., 5:30 PM" style={inputStyle} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Terminal</label><input type="text" value={data.flights?.departure?.terminal || ''} onChange={e => updateField('flights.departure.terminal', e.target.value)} placeholder="Terminal" style={inputStyle} /></div>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Gate</label><input type="text" value={data.flights?.departure?.gate || ''} onChange={e => updateField('flights.departure.gate', e.target.value)} placeholder="Gate" style={inputStyle} /></div>
+              </div>
+            </div>
+          </div>
+        </div>}
+
         {activeTab === 'lodging' && <div>
           <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Our Home Base</h2>
           <p style={{ color: '#888', marginBottom: 24 }}>Where we're staying!</p>
@@ -808,6 +887,67 @@ export default function App() {
             <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Announcements</h3>
             <AnnForm onAdd={addAnn} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{data.announcements.map(a => <div key={a.id} style={{ background: '#f8f4ff', borderRadius: 12, padding: 16 }}><div style={{ fontSize: 14, marginBottom: 8 }}>{a.text}</div><div style={{ fontSize: 12, color: '#888' }}>{a.author} • {new Date(a.time).toLocaleDateString()}</div></div>)}</div>
+          </div>
+        </div>}
+
+        {activeTab === 'polls' && <div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Polls</h2>
+          <p style={{ color: '#888', marginBottom: 24 }}>Create polls to get group input on decisions!</p>
+          <PollForm onAdd={addPoll} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {(data.polls || []).map(poll => (
+              <div key={poll.id} style={cardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, color: '#4a4a6a' }}>{poll.question}</div>
+                    <div style={{ fontSize: 12, color: '#aaa' }}>Created by {poll.addedBy}</div>
+                  </div>
+                  <button onClick={() => removePoll(poll.id)} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 16, cursor: 'pointer' }}>×</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {poll.options.map((option, idx) => {
+                    const totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes, 0);
+                    const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
+                    const hasVoted = option.voters.includes(currentUser?.name);
+                    return (
+                      <div key={idx} style={{ position: 'relative' }}>
+                        <button
+                          onClick={() => !hasVoted && votePoll(poll.id, idx)}
+                          disabled={hasVoted}
+                          style={{
+                            width: '100%',
+                            padding: '14px 16px',
+                            borderRadius: 10,
+                            border: hasVoted ? '2px solid #667eea' : '1px solid #e8e0f0',
+                            background: hasVoted ? '#f8f4ff' : '#fff',
+                            color: '#4a4a6a',
+                            fontSize: 14,
+                            cursor: hasVoted ? 'default' : 'pointer',
+                            textAlign: 'left',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <span>{option.text}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#764ba2' }}>{option.votes} {option.votes === 1 ? 'vote' : 'votes'}</span>
+                            {hasVoted && <span style={{ fontSize: 12, color: '#667eea' }}>✓</span>}
+                          </div>
+                        </button>
+                        {totalVotes > 0 && (
+                          <div style={{ marginTop: 6, height: 4, background: '#f0f0f0', borderRadius: 2, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${percentage}%`, background: 'linear-gradient(135deg, #667eea, #764ba2)', transition: 'width 0.3s' }} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {(!data.polls || data.polls.length === 0) && <div style={{ textAlign: 'center', padding: '48px 24px', color: '#888', background: '#fff', borderRadius: 16 }}><p>No polls yet. Create one to get group input!</p></div>}
           </div>
         </div>}
 
@@ -857,5 +997,84 @@ function AnnForm({ onAdd }) {
   const [text, setText] = useState('');
   const submit = () => { if (!text.trim()) return; onAdd(text); setText(''); };
   return <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}><input type="text" value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} placeholder="Type announcement..." style={{ flex: 1, padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14 }} /><button onClick={submit} style={{ padding: '12px 20px', borderRadius: 10, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 500, fontSize: 14, cursor: 'pointer' }}>Post</button></div>;
+}
+
+function PollForm({ onAdd }) {
+  const [question, setQuestion] = useState('');
+  const [options, setOptions] = useState(['', '']);
+  
+  const addOption = () => {
+    if (options.length < 6) {
+      setOptions([...options, '']);
+    }
+  };
+  
+  const updateOption = (index, value) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
+  
+  const removeOption = (index) => {
+    if (options.length > 2) {
+      setOptions(options.filter((_, i) => i !== index));
+    }
+  };
+  
+  const submit = () => {
+    if (!question.trim() || options.filter(opt => opt.trim()).length < 2) return;
+    onAdd({
+      question: question.trim(),
+      options: options.filter(opt => opt.trim())
+    });
+    setQuestion('');
+    setOptions(['', '']);
+  };
+  
+  return (
+    <div style={{ background: '#fff', borderRadius: 16, padding: 20, marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <input
+        type="text"
+        value={question}
+        onChange={e => setQuestion(e.target.value)}
+        placeholder="Poll question..."
+        style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, boxSizing: 'border-box' }}
+      />
+      <div style={{ fontSize: 12, color: '#888', marginTop: -8 }}>Add at least 2 options</div>
+      {options.map((opt, idx) => (
+        <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            type="text"
+            value={opt}
+            onChange={e => updateOption(idx, e.target.value)}
+            placeholder={`Option ${idx + 1}`}
+            style={{ flex: 1, padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, boxSizing: 'border-box' }}
+          />
+          {options.length > 2 && (
+            <button
+              onClick={() => removeOption(idx)}
+              style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 16, cursor: 'pointer' }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+      ))}
+      {options.length < 6 && (
+        <button
+          onClick={addOption}
+          style={{ padding: '10px 16px', borderRadius: 10, border: '1px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 13, cursor: 'pointer', alignSelf: 'flex-start' }}
+        >
+          + Add Option
+        </button>
+      )}
+      <button
+        onClick={submit}
+        style={{ padding: '12px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', alignSelf: 'flex-start' }}
+      >
+        Create Poll
+      </button>
+    </div>
+  );
 }
 
