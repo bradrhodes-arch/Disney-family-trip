@@ -713,7 +713,7 @@ export default function App() {
   
   // Auto-update flight tracking every 5 minutes for flights today or tomorrow
   useEffect(() => {
-    if (!data || !data.flights) return;
+    if (!data || !data.flights || !currentUser) return;
     
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
@@ -722,12 +722,13 @@ export default function App() {
     
     Object.keys(data.flights).forEach(flightType => {
       const flight = data.flights[flightType];
-      if (flight && flight.date && (flight.date === today || flight.date === tomorrow)) {
-        // Auto-track flights that are today or tomorrow
+      if (flight && flight.date && (flight.date === today || flight.date === tomorrow) && flight.flightNumber && flight.airline) {
+        // Initial track on mount
+        trackFlight(flightType);
+        
+        // Then auto-update every 5 minutes
         const checkInterval = setInterval(() => {
-          if (flight.flightNumber && flight.airline) {
-            trackFlight(flightType);
-          }
+          trackFlight(flightType);
         }, 300000); // Check every 5 minutes
         
         intervals.push(checkInterval);
@@ -737,7 +738,7 @@ export default function App() {
     return () => {
       intervals.forEach(interval => clearInterval(interval));
     };
-  }, [data?.flights]);
+  }, [data?.flights?.arrival?.date, data?.flights?.departure?.date, currentUser]);
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, #fdf6f9, #f0e6ff)' }}>
