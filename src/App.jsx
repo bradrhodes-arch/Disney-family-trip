@@ -396,7 +396,14 @@ export default function App() {
   const [lastSaved, setLastSaved] = useState(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState(() => {
+    // Load saved password from localStorage
+    try {
+      return localStorage.getItem('disney-trip-saved-password') || '';
+    } catch {
+      return '';
+    }
+  });
   const [nameInput, setNameInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [showGlitter, setShowGlitter] = useState(false);
@@ -507,8 +514,18 @@ export default function App() {
   };
 
   const handlePassword = () => {
-    if (passwordInput === 'Disney2026' || passwordInput === data?.tripInfo?.password) { setPasswordError(false); setStep('name'); }
-    else setPasswordError(true);
+    if (passwordInput === 'Disney2026' || passwordInput === data?.tripInfo?.password) {
+      setPasswordError(false);
+      // Save password to localStorage
+      try {
+        localStorage.setItem('disney-trip-saved-password', passwordInput);
+      } catch (e) {
+        console.error('Failed to save password:', e);
+      }
+      setStep('name');
+    } else {
+      setPasswordError(true);
+    }
   };
 
   const handleName = () => {
@@ -520,7 +537,14 @@ export default function App() {
   };
 
   const handleGlitterDone = () => { setUnlockComplete(true); setTimeout(() => setIsUnlocked(true), 400); };
-  const logout = () => { setCurrentUser(null); setIsUnlocked(false); setStep('password'); setPasswordInput(''); setNameInput(''); setUnlockComplete(false); };
+  const logout = () => {
+    setCurrentUser(null);
+    setIsUnlocked(false);
+    setStep('password');
+    // Keep password saved, just clear name
+    setNameInput('');
+    setUnlockComplete(false);
+  };
 
   const updateDay = (dayId, idx, val) => {
     setData(p => ({ ...p, days: p.days.map(d => d.id === dayId ? { ...d, activities: d.activities.map((a, i) => i === idx ? { text: val, editedBy: currentUser?.name } : a) } : d) }));
@@ -757,7 +781,8 @@ export default function App() {
         <h1 style={{ fontSize: 26, fontWeight: 700, color: '#4a4a6a', margin: '16px 0 8px' }}>✨ Disney Family Trip ✨</h1>
         {step === 'password' ? (<>
           <p style={{ color: '#764ba2', margin: '0 0 20px' }}>Enter the magic words</p>
-          <input type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handlePassword()} placeholder="Family password..." style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: '2px solid #e8e0f0', fontSize: 16, textAlign: 'center', marginBottom: 12, boxSizing: 'border-box' }} />
+          <input type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handlePassword()} placeholder="Family password..." style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: '2px solid #e8e0f0', fontSize: 16, textAlign: 'center', marginBottom: 12, boxSizing: 'border-box' }} autoComplete="current-password" />
+          {passwordInput && <p style={{ fontSize: 12, color: '#888', marginTop: -8, marginBottom: 8 }}>Password saved - you won't need to enter it again!</p>}
           <button onClick={handlePassword} style={{ width: '100%', padding: '16px 24px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}>Continue ✨</button>
           {passwordError && <p style={{ color: '#f5576c', marginTop: 12 }}>🪄 Wrong spell! Try again.</p>}
           <p style={{ color: '#aaa', fontSize: 13, marginTop: 16 }}>💫 Hint: Magic word + year</p>
