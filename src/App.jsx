@@ -406,17 +406,21 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
     otherInfo: member.otherInfo || ''
   });
 
+  // Only sync editData when member changes AND we're not currently editing
+  // This prevents overwriting user input while they're typing
   useEffect(() => {
-    setEditData({
-      firstName: member.firstName || '',
-      lastName: member.lastName || '',
-      birthdate: member.birthdate || '',
-      phone: member.phone || '',
-      emergencyContactName: member.emergencyContactName || '',
-      emergencyContactPhone: member.emergencyContactPhone || '',
-      otherInfo: member.otherInfo || ''
-    });
-  }, [member]);
+    if (!isEditing) {
+      setEditData({
+        firstName: member.firstName || '',
+        lastName: member.lastName || '',
+        birthdate: member.birthdate || '',
+        phone: member.phone || '',
+        emergencyContactName: member.emergencyContactName || '',
+        emergencyContactPhone: member.emergencyContactPhone || '',
+        otherInfo: member.otherInfo || ''
+      });
+    }
+  }, [member, isEditing]);
 
   const displayName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unnamed Member';
   const displayPhone = member.phone || '';
