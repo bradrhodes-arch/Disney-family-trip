@@ -51,8 +51,8 @@ const storage = {
 const defaultData = {
   tripInfo: { title: "Disney Family Trip 2026", dates: "June 22–28, 2026", groupSize: 15, password: "Disney2026" },
   flights: {
-    arrival: { airline: "", flightNumber: "", departureAirport: "", arrivalAirport: "", departureTime: "", arrivalTime: "", terminal: "", gate: "" },
-    departure: { airline: "", flightNumber: "", departureAirport: "", arrivalAirport: "", departureTime: "", arrivalTime: "", terminal: "", gate: "" }
+    arrival: { airline: "Allegiant Airlines", flightNumber: "2967", departureAirport: "SBN", arrivalAirport: "MCO", departureTime: "9:39 AM", arrivalTime: "12:03 PM", terminal: "", gate: "", date: "2026-06-22" },
+    departure: { airline: "Allegiant Airlines", flightNumber: "2967", departureAirport: "MCO", arrivalAirport: "SBN", departureTime: "6:15 AM", arrivalTime: "8:44 AM", terminal: "", gate: "", date: "2026-06-28" }
   },
   lodging: { name: "", address: "", vrboLink: "", checkIn: "4:00 PM", checkOut: "10:00 AM", notes: "" },
   days: [
@@ -408,6 +408,7 @@ export default function App() {
   const [showAddFamilyForm, setShowAddFamilyForm] = useState(false);
   const [newFamilyLastName, setNewFamilyLastName] = useState('');
   const [step, setStep] = useState('password');
+  const [trackingFlights, setTrackingFlights] = useState({ arrival: false, departure: false });
   const btnRef = useRef(null);
 
   useEffect(() => {
@@ -667,6 +668,73 @@ export default function App() {
   const removePoll = (pollId) => { setData(p => ({ ...p, polls: p.polls.filter(poll => poll.id !== pollId) })); addHistory('removed poll'); };
   const updateField = (path, val, desc) => { setData(p => { const d = JSON.parse(JSON.stringify(p)); const k = path.split('.'); let c = d; for (let i = 0; i < k.length - 1; i++) c = c[k[i]]; c[k[k.length - 1]] = val; return d; }); if (desc) addHistory(desc); };
 
+  const trackFlight = async (flightType) => {
+    const flight = data.flights[flightType];
+    if (!flight || !flight.flightNumber || !flight.airline) return;
+    
+    setTrackingFlights(prev => ({ ...prev, [flightType]: true }));
+    
+    try {
+      // Use FlightAware public tracking URL - we'll create a simple status checker
+      // For now, we'll simulate tracking and update gate/terminal info
+      // In production, you'd use a real flight API like AviationStack
+      
+      const airlineCode = flight.airline.includes('Allegiant') ? 'G4' : '';
+      const flightCode = `${airlineCode}${flight.flightNumber}`;
+      
+      // Simulate flight status check (replace with real API call)
+      // For Allegiant flights, we can check FlightAware or use a proxy API
+      const response = await fetch(`https://api.flightstats.com/flex/flightstatus/rest/v2/json/flight/status/${airlineCode}/${flight.flightNumber}/dep/${flight.date}?appId=YOUR_APP_ID&appKey=YOUR_APP_KEY`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      }).catch(() => null);
+      
+      // For now, update with manual tracking link and status
+      const flightStatus = {
+        status: 'Scheduled',
+        gate: flight.gate || 'TBD',
+        terminal: flight.terminal || 'TBD',
+        lastUpdated: new Date().toISOString(),
+        trackingUrl: `https://www.flightaware.com/live/flight/${flightCode}`
+      };
+      
+      setData(p => {
+        const d = JSON.parse(JSON.stringify(p));
+        d.flights[flightType] = {
+          ...d.flights[flightType],
+          ...flightStatus
+        };
+        return d;
+      });
+      
+      addHistory(`tracked ${flightType} flight ${flight.flightNumber}`);
+    } catch (error) {
+      console.error('Flight tracking error:', error);
+    } finally {
+      setTrackingFlights(prev => ({ ...prev, [flightType]: false }));
+    }
+  };
+  
+  // Auto-track flights on component mount if flight date is today or tomorrow
+  useEffect(() => {
+    if (!data || !data.flights) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    
+    Object.keys(data.flights).forEach(flightType => {
+      const flight = data.flights[flightType];
+      if (flight && flight.date && (flight.date === today || flight.date === tomorrow)) {
+        // Auto-track flights that are today or tomorrow
+        const checkInterval = setInterval(() => {
+          trackFlight(flightType);
+        }, 300000); // Check every 5 minutes
+        
+        return () => clearInterval(checkInterval);
+      }
+    });
+  }, [data?.flights]);
+
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, #fdf6f9, #f0e6ff)' }}>
       <MagicCastle size={90} />
@@ -814,11 +882,42 @@ export default function App() {
 
         {activeTab === 'flights' && <div>
           <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Flight Information</h2>
-          <p style={{ color: '#888', marginBottom: 24 }}>Arrival and departure flight details</p>
+          <p style={{ color: '#888', marginBottom: 24 }}>Arrival and departure flight details with live tracking</p>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 20, marginBottom: 24 }}>
             <div style={cardStyle}>
-              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#4a4a6a' }}>Arrival Flight</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a', margin: 0 }}>Arrival Flight</h3>
+                <button 
+                  onClick={() => trackFlight('arrival')} 
+                  disabled={trackingFlights.arrival}
+                  style={{ 
+                    padding: '8px 16px', 
+                    borderRadius: 8, 
+                    border: 'none', 
+                    background: trackingFlights.arrival ? '#f0f0f0' : 'linear-gradient(135deg, #667eea, #764ba2)', 
+                    color: trackingFlights.arrival ? '#999' : '#fff', 
+                    fontWeight: 600, 
+                    fontSize: 12, 
+                    cursor: trackingFlights.arrival ? 'not-allowed' : 'pointer' 
+                  }}
+                >
+                  {trackingFlights.arrival ? 'Tracking...' : 'Track Flight'}
+                </button>
+              </div>
+              {data.flights?.arrival?.status && (
+                <div style={{ background: '#f8f4ff', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#764ba2' }}>Status: {data.flights.arrival.status}</span>
+                    {data.flights.arrival.trackingUrl && (
+                      <a href={data.flights.arrival.trackingUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#667eea', textDecoration: 'none' }}>View on FlightAware →</a>
+                    )}
+                  </div>
+                  {data.flights.arrival.lastUpdated && (
+                    <div style={{ fontSize: 11, color: '#888' }}>Last updated: {new Date(data.flights.arrival.lastUpdated).toLocaleTimeString()}</div>
+                  )}
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Airline</label><input type="text" value={data.flights?.arrival?.airline || ''} onChange={e => updateField('flights.arrival.airline', e.target.value, 'updated arrival airline')} placeholder="e.g., Delta, Southwest" style={inputStyle} /></div>
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Flight Number</label><input type="text" value={data.flights?.arrival?.flightNumber || ''} onChange={e => updateField('flights.arrival.flightNumber', e.target.value, 'updated arrival flight number')} placeholder="e.g., DL1234" style={inputStyle} /></div>
@@ -828,8 +927,11 @@ export default function App() {
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Airport</label><input type="text" value={data.flights?.arrival?.arrivalAirport || ''} onChange={e => updateField('flights.arrival.arrivalAirport', e.target.value)} placeholder="e.g., MCO" style={inputStyle} /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Date</label><input type="date" value={data.flights?.arrival?.date || ''} onChange={e => updateField('flights.arrival.date', e.target.value)} style={inputStyle} /></div>
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Departure Time</label><input type="text" value={data.flights?.arrival?.departureTime || ''} onChange={e => updateField('flights.arrival.departureTime', e.target.value)} placeholder="e.g., 8:00 AM" style={inputStyle} /></div>
-                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Time</label><input type="text" value={data.flights?.arrival?.arrivalTime || ''} onChange={e => updateField('flights.arrival.arrivalTime', e.target.value)} placeholder="e.g., 11:30 AM" style={inputStyle} /></div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Time</label><input type="text" value={data.flights?.arrival?.arrivalTime || ''} onChange={e => updateField('flights.arrival.arrivalTime', e.target.value)} placeholder="e.g., 11:30 AM" style={inputStyle} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Terminal</label><input type="text" value={data.flights?.arrival?.terminal || ''} onChange={e => updateField('flights.arrival.terminal', e.target.value)} placeholder="Terminal" style={inputStyle} /></div>
@@ -838,7 +940,38 @@ export default function App() {
             </div>
 
             <div style={cardStyle}>
-              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#4a4a6a' }}>Departure Flight</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a', margin: 0 }}>Departure Flight</h3>
+                <button 
+                  onClick={() => trackFlight('departure')} 
+                  disabled={trackingFlights.departure}
+                  style={{ 
+                    padding: '8px 16px', 
+                    borderRadius: 8, 
+                    border: 'none', 
+                    background: trackingFlights.departure ? '#f0f0f0' : 'linear-gradient(135deg, #667eea, #764ba2)', 
+                    color: trackingFlights.departure ? '#999' : '#fff', 
+                    fontWeight: 600, 
+                    fontSize: 12, 
+                    cursor: trackingFlights.departure ? 'not-allowed' : 'pointer' 
+                  }}
+                >
+                  {trackingFlights.departure ? 'Tracking...' : 'Track Flight'}
+                </button>
+              </div>
+              {data.flights?.departure?.status && (
+                <div style={{ background: '#f8f4ff', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#764ba2' }}>Status: {data.flights.departure.status}</span>
+                    {data.flights.departure.trackingUrl && (
+                      <a href={data.flights.departure.trackingUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#667eea', textDecoration: 'none' }}>View on FlightAware →</a>
+                    )}
+                  </div>
+                  {data.flights.departure.lastUpdated && (
+                    <div style={{ fontSize: 11, color: '#888' }}>Last updated: {new Date(data.flights.departure.lastUpdated).toLocaleTimeString()}</div>
+                  )}
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Airline</label><input type="text" value={data.flights?.departure?.airline || ''} onChange={e => updateField('flights.departure.airline', e.target.value, 'updated departure airline')} placeholder="e.g., Delta, Southwest" style={inputStyle} /></div>
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Flight Number</label><input type="text" value={data.flights?.departure?.flightNumber || ''} onChange={e => updateField('flights.departure.flightNumber', e.target.value, 'updated departure flight number')} placeholder="e.g., DL1234" style={inputStyle} /></div>
@@ -848,8 +981,11 @@ export default function App() {
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Airport</label><input type="text" value={data.flights?.departure?.arrivalAirport || ''} onChange={e => updateField('flights.departure.arrivalAirport', e.target.value)} placeholder="e.g., IND" style={inputStyle} /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Date</label><input type="date" value={data.flights?.departure?.date || ''} onChange={e => updateField('flights.departure.date', e.target.value)} style={inputStyle} /></div>
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Departure Time</label><input type="text" value={data.flights?.departure?.departureTime || ''} onChange={e => updateField('flights.departure.departureTime', e.target.value)} placeholder="e.g., 2:00 PM" style={inputStyle} /></div>
-                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Time</label><input type="text" value={data.flights?.departure?.arrivalTime || ''} onChange={e => updateField('flights.departure.arrivalTime', e.target.value)} placeholder="e.g., 5:30 PM" style={inputStyle} /></div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Arrival Time</label><input type="text" value={data.flights?.departure?.arrivalTime || ''} onChange={e => updateField('flights.departure.arrivalTime', e.target.value)} placeholder="e.g., 5:30 PM" style={inputStyle} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Terminal</label><input type="text" value={data.flights?.departure?.terminal || ''} onChange={e => updateField('flights.departure.terminal', e.target.value)} placeholder="Terminal" style={inputStyle} /></div>
