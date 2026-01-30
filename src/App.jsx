@@ -827,6 +827,19 @@ export default function App() {
             }
           }
           
+          // Ensure default budget tips are included
+          if (!p.budgetTips || p.budgetTips.length === 0) {
+            p.budgetTips = defaultData.budgetTips;
+          } else {
+            // Add default budget tips if they don't exist
+            const defaultTipIds = defaultData.budgetTips.map(t => t.id);
+            const existingTipIds = p.budgetTips.map(t => t.id);
+            const missingTips = defaultData.budgetTips.filter(t => !existingTipIds.includes(t.id));
+            if (missingTips.length > 0) {
+              p.budgetTips = [...p.budgetTips, ...missingTips];
+            }
+          }
+          
           // Ensure flights structure exists
           if (!p.flights) {
             p.flights = defaultData.flights;
