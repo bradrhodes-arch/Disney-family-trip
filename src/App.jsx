@@ -115,6 +115,18 @@ PRO TIP: Ride Flight of Passage right before park closes for shorter waits!`,
       voters: []
     }
   ],
+  budgetTips: [
+    { id: 1, text: "Buy multi-day tickets - the more days, the cheaper per day!", category: "🎟️ Tickets", addedBy: "System" },
+    { id: 2, text: "Pack breakfast & snacks at the VRBO - saves $20+/person/day", category: "🍽️ Food & Dining", addedBy: "System" },
+    { id: 3, text: "Bring refillable water bottles - free water at any quick service", category: "🍽️ Food & Dining", addedBy: "System" },
+    { id: 4, text: "Mobile order food to skip lines and avoid impulse buys", category: "🍽️ Food & Dining", addedBy: "System" },
+    { id: 5, text: "Memory Maker ($169) covers unlimited photos for the whole group", category: "📸 Photos & Souvenirs", addedBy: "System" },
+    { id: 6, text: "Visit water parks on check-in day - it's FREE for resort guests in summer 2026!", category: "🏨 Lodging", addedBy: "System" },
+    { id: 7, text: "Book dining reservations 60 days out - hard to get for groups of 15", category: "🍽️ Food & Dining", addedBy: "System" },
+    { id: 8, text: "Use Disney gift cards bought at Target with RedCard for 5% off", category: "💡 General", addedBy: "System" },
+    { id: 9, text: "Download My Disney Experience app and set up Genie+ strategies", category: "📱 Apps & Planning", addedBy: "System" },
+    { id: 10, text: "Eat at quick service for lunch, table service for dinner only", category: "🍽️ Food & Dining", addedBy: "System" }
+  ],
   polls: [],
   announcements: [],
   editHistory: []
@@ -1137,6 +1149,8 @@ export default function App() {
   const addPoll = (poll) => { setData(p => ({ ...p, polls: [...p.polls, { id: Date.now(), question: poll.question, options: poll.options.map(opt => ({ text: opt, votes: 0, voters: [] })), addedBy: currentUser?.name, createdAt: new Date().toISOString() }] })); addHistory(`created poll: ${poll.question}`); };
   const votePoll = (pollId, optionIndex) => { setData(p => ({ ...p, polls: p.polls.map(poll => poll.id === pollId ? { ...poll, options: poll.options.map((opt, idx) => idx === optionIndex && !opt.voters.includes(currentUser?.name) ? { ...opt, votes: opt.votes + 1, voters: [...opt.voters, currentUser?.name] } : opt) } : poll) })); };
   const removePoll = (pollId) => { setData(p => ({ ...p, polls: p.polls.filter(poll => poll.id !== pollId) })); addHistory('removed poll'); };
+  const addBudgetTip = (tip) => { setData(p => ({ ...p, budgetTips: [...(p.budgetTips || []), { id: Date.now(), text: tip.text, category: tip.category, addedBy: currentUser?.name }] })); addHistory('added budget tip'); };
+  const removeBudgetTip = (tipId) => { setData(p => ({ ...p, budgetTips: (p.budgetTips || []).filter(tip => tip.id !== tipId) })); addHistory('removed budget tip'); };
   const updateField = (path, val, desc) => { 
     setData(p => { 
       const d = JSON.parse(JSON.stringify(p)); 
@@ -1256,7 +1270,7 @@ export default function App() {
     </div>
   );
 
-  const tabs = [{ id: 'itinerary', label: 'Itinerary', icon: '' }, { id: 'contacts', label: 'Family', icon: '' }, { id: 'flights', label: 'Flights', icon: '' }, { id: 'lodging', label: 'Lodging', icon: '' }, { id: 'tips', label: 'Tips', icon: '' }, { id: 'polls', label: 'Polls', icon: '' }, { id: 'emergency', label: 'Emergency', icon: '' }, { id: 'history', label: 'Activity', icon: '' }];
+  const tabs = [{ id: 'itinerary', label: 'Itinerary', icon: '' }, { id: 'contacts', label: 'Family', icon: '' }, { id: 'flights', label: 'Flights', icon: '' }, { id: 'lodging', label: 'Lodging', icon: '' }, { id: 'tips', label: 'Planning', icon: '' }, { id: 'polls', label: 'Polls', icon: '' }, { id: 'emergency', label: 'Emergency', icon: '' }, { id: 'history', label: 'Activity', icon: '' }];
   const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
   const textareaStyle = { ...inputStyle, resize: 'vertical', minHeight: 80, fontFamily: 'inherit' };
   const cardStyle = { background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' };
@@ -1722,23 +1736,16 @@ export default function App() {
           </div>
         </div>}
 
-        {activeTab === 'tips' && <div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Tips & Recommendations</h2>
-          <p style={{ color: '#888', marginBottom: 24 }}>Share your Disney wisdom! Vote on favorites.</p>
-          <RecForm onAdd={addRec} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {data.recommendations.sort((a, b) => b.votes - a.votes).map(r => <div key={r.id} style={{ ...cardStyle, display: 'flex', gap: 16 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}><button onClick={() => voteRec(r.id)} disabled={(r.voters || []).includes(currentUser?.name)} style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #ffe58f', background: '#fffbe6', fontSize: 20, cursor: 'pointer', opacity: (r.voters || []).includes(currentUser?.name) ? 0.5 : 1 }}>⭐</button><span style={{ fontWeight: 700, color: '#d48806' }}>{r.votes}</span></div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 11, textTransform: 'uppercase', color: '#888', marginBottom: 4 }}>{r.category}</div><div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{r.title}</div>{r.description && <div style={{ fontSize: 14, color: '#666', lineHeight: 1.5 }}>{r.description}</div>}<div style={{ fontSize: 12, color: '#aaa', marginTop: 8 }}>Added by {r.addedBy}</div></div>
-            </div>)}
-            {data.recommendations.length === 0 && <div style={{ textAlign: 'center', padding: '48px 24px', color: '#888' }}><p>No tips yet!</p></div>}
-          </div>
-          <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid #f0e6ff' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Announcements</h3>
-            <AnnForm onAdd={addAnn} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{data.announcements.map(a => <div key={a.id} style={{ background: '#f8f4ff', borderRadius: 12, padding: 16 }}><div style={{ fontSize: 14, marginBottom: 8 }}>{a.text}</div><div style={{ fontSize: 12, color: '#888' }}>{a.author} • {new Date(a.time).toLocaleDateString()}</div></div>)}</div>
-          </div>
-        </div>}
+        {activeTab === 'tips' && <PlanningTab 
+          data={data}
+          currentUser={currentUser}
+          addRec={addRec}
+          voteRec={voteRec}
+          addBudgetTip={addBudgetTip}
+          removeBudgetTip={removeBudgetTip}
+          addAnn={addAnn}
+          cardStyle={cardStyle}
+        />}
 
         {activeTab === 'polls' && <div>
           <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Polls</h2>
@@ -1828,6 +1835,105 @@ export default function App() {
   );
 }
 
+// Planning Tab Component
+function PlanningTab({ data, currentUser, addRec, voteRec, addBudgetTip, removeBudgetTip, addAnn, cardStyle }) {
+  const [planningSection, setPlanningSection] = useState('recommendations'); // 'recommendations' or 'budget'
+  
+  return (
+    <div>
+      <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Planning</h2>
+      <p style={{ color: '#888', marginBottom: 20 }}>Tips, recommendations, and budget-saving ideas for your trip!</p>
+      
+      {/* Section Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, borderBottom: '2px solid #f0e6ff', paddingBottom: 0 }}>
+        <button 
+          onClick={() => setPlanningSection('recommendations')}
+          style={{ 
+            padding: '12px 20px', 
+            borderRadius: '10px 10px 0 0', 
+            border: 'none', 
+            borderBottom: planningSection === 'recommendations' ? '3px solid #667eea' : '3px solid transparent',
+            background: planningSection === 'recommendations' ? '#fff' : 'transparent',
+            color: planningSection === 'recommendations' ? '#667eea' : '#888',
+            fontWeight: planningSection === 'recommendations' ? 600 : 400,
+            fontSize: 14,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          💡 Recommendations
+        </button>
+        <button 
+          onClick={() => setPlanningSection('budget')}
+          style={{ 
+            padding: '12px 20px', 
+            borderRadius: '10px 10px 0 0', 
+            border: 'none', 
+            borderBottom: planningSection === 'budget' ? '3px solid #667eea' : '3px solid transparent',
+            background: planningSection === 'budget' ? '#fff' : 'transparent',
+            color: planningSection === 'budget' ? '#667eea' : '#888',
+            fontWeight: planningSection === 'budget' ? 600 : 400,
+            fontSize: 14,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          💰 Budget Tips
+        </button>
+      </div>
+
+      {/* Recommendations Section */}
+      {planningSection === 'recommendations' && (
+        <div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>💡 Recommendations</h3>
+          <p style={{ color: '#888', marginBottom: 20, fontSize: 14 }}>Share your Disney wisdom! Vote on favorites.</p>
+          <RecForm onAdd={addRec} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {data.recommendations.sort((a, b) => b.votes - a.votes).map(r => <div key={r.id} style={{ ...cardStyle, display: 'flex', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}><button onClick={() => voteRec(r.id)} disabled={(r.voters || []).includes(currentUser?.name)} style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #ffe58f', background: '#fffbe6', fontSize: 20, cursor: 'pointer', opacity: (r.voters || []).includes(currentUser?.name) ? 0.5 : 1 }}>⭐</button><span style={{ fontWeight: 700, color: '#d48806' }}>{r.votes}</span></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 11, textTransform: 'uppercase', color: '#888', marginBottom: 4 }}>{r.category}</div><div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{r.title}</div>{r.description && <div style={{ fontSize: 14, color: '#666', lineHeight: 1.5 }}>{r.description}</div>}<div style={{ fontSize: 12, color: '#aaa', marginTop: 8 }}>Added by {r.addedBy}</div></div>
+            </div>)}
+            {data.recommendations.length === 0 && <div style={{ textAlign: 'center', padding: '48px 24px', color: '#888' }}><p>No recommendations yet!</p></div>}
+          </div>
+        </div>
+      )}
+
+      {/* Budget Tips Section */}
+      {planningSection === 'budget' && (
+        <div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>💰 Budget Tips</h3>
+          <p style={{ color: '#888', marginBottom: 20, fontSize: 14 }}>Money-saving tips to make your Disney trip more affordable!</p>
+          <BudgetTipForm onAdd={addBudgetTip} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(data.budgetTips || []).map(tip => (
+              <div key={tip.id} style={{ ...cardStyle, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 6, background: '#f0e6ff', color: '#764ba2' }}>{tip.category}</span>
+                  </div>
+                  <div style={{ fontSize: 14, color: '#4a4a6a', lineHeight: 1.5, marginBottom: 6 }}>{tip.text}</div>
+                  <div style={{ fontSize: 12, color: '#aaa' }}>Added by {tip.addedBy}</div>
+                </div>
+                {tip.addedBy !== 'System' && (
+                  <button onClick={() => removeBudgetTip(tip.id)} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 16, cursor: 'pointer', flexShrink: 0 }}>×</button>
+                )}
+              </div>
+            ))}
+            {(!data.budgetTips || data.budgetTips.length === 0) && <div style={{ textAlign: 'center', padding: '48px 24px', color: '#888' }}><p>No budget tips yet!</p></div>}
+          </div>
+        </div>
+      )}
+
+      {/* Announcements Section */}
+      <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid #f0e6ff' }}>
+        <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Announcements</h3>
+        <AnnForm onAdd={addAnn} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{data.announcements.map(a => <div key={a.id} style={{ background: '#f8f4ff', borderRadius: 12, padding: 16 }}><div style={{ fontSize: 14, marginBottom: 8 }}>{a.text}</div><div style={{ fontSize: 12, color: '#888' }}>{a.author} • {new Date(a.time).toLocaleDateString()}</div></div>)}</div>
+      </div>
+    </div>
+  );
+}
+
 function RecForm({ onAdd }) {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
@@ -1839,6 +1945,22 @@ function RecForm({ onAdd }) {
       <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Your tip..." style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, boxSizing: 'border-box' }} />
       <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Why? (optional)" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, resize: 'vertical', minHeight: 60, boxSizing: 'border-box', fontFamily: 'inherit' }} />
       <button onClick={submit} style={{ padding: '12px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', alignSelf: 'flex-start' }}>✨ Add Tip</button>
+    </div>
+  );
+}
+
+function BudgetTipForm({ onAdd }) {
+  const [text, setText] = useState('');
+  const [category, setCategory] = useState('💡 General');
+  const categories = ['🎟️ Tickets', '🍽️ Food & Dining', '📸 Photos & Souvenirs', '🏨 Lodging', '📱 Apps & Planning', '💡 General'];
+  const submit = () => { if (!text.trim()) return; onAdd({ text: text.trim(), category }); setText(''); };
+  return (
+    <div style={{ background: '#fff', borderRadius: 16, padding: 20, marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <select value={category} onChange={e => setCategory(e.target.value)} style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, background: '#fff' }}>
+        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+      </select>
+      <input type="text" value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} placeholder="Enter a budget-saving tip..." style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, boxSizing: 'border-box' }} />
+      <button onClick={submit} style={{ padding: '12px 24px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #52c41a, #73d13d)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', alignSelf: 'flex-start' }}>💰 Add Budget Tip</button>
     </div>
   );
 }
