@@ -416,7 +416,6 @@ export default function App() {
   const [newFamilyLastName, setNewFamilyLastName] = useState('');
   const [step, setStep] = useState('password');
   const [trackingFlights, setTrackingFlights] = useState({ arrival: false, departure: false });
-  const [fetchingVRBO, setFetchingVRBO] = useState(false);
   const btnRef = useRef(null);
 
   useEffect(() => {
@@ -693,109 +692,6 @@ export default function App() {
   const removePoll = (pollId) => { setData(p => ({ ...p, polls: p.polls.filter(poll => poll.id !== pollId) })); addHistory('removed poll'); };
   const updateField = (path, val, desc) => { setData(p => { const d = JSON.parse(JSON.stringify(p)); const k = path.split('.'); let c = d; for (let i = 0; i < k.length - 1; i++) c = c[k[i]]; c[k[k.length - 1]] = val; return d; }); if (desc) addHistory(desc); };
 
-  const fetchVRBODetails = async () => {
-    const vrboLink = data.lodging?.vrboLink;
-    if (!vrboLink || !vrboLink.includes('vrbo.com')) {
-      alert('Please enter a valid VRBO link first');
-      return;
-    }
-
-    setFetchingVRBO(true);
-    try {
-      // Use Microlink API to extract metadata from VRBO page
-      const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(vrboLink)}`;
-      
-      const response = await fetch(microlinkUrl);
-      const result = await response.json();
-      
-      if (result.status === 'success' && result.data) {
-        const metadata = result.data;
-        
-        // Extract title - clean it up better
-        let title = metadata.title || metadata['og:title'] || '';
-        // Remove VRBO branding and clean up
-        title = title
-          .replace(/ - VRBO$| \| VRBO$| on VRBO$/i, '')
-          .replace(/^VRBO - /i, '')
-          .replace(/\s*-\s*Expedia.*$/i, '')
-          .trim();
-        
-        // Extract description
-        const description = metadata.description || metadata['og:description'] || '';
-        
-        // Try multiple methods to extract address
-        let address = '';
-        
-        // Method 1: Look for address in description
-        const addressPatterns = [
-          /(\d+[\s\w]+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Boulevard|Blvd|Way|Circle|Ct|Court|Place|Pl)[\s,]+[A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5})/i,
-          /([A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5})/,
-          /(\d+[\s\w]+,\s*[A-Z][a-z]+,\s*[A-Z]{2})/i
-        ];
-        
-        for (const pattern of addressPatterns) {
-          const match = description.match(pattern) || title.match(pattern);
-          if (match) {
-            address = match[1].trim();
-            break;
-          }
-        }
-        
-        // Method 2: Look for location keywords (Kissimmee, Orlando, etc.)
-        if (!address && description) {
-          const locationKeywords = ['Kissimmee', 'Orlando', 'Lake Buena Vista', 'Celebration'];
-          for (const keyword of locationKeywords) {
-            if (description.includes(keyword)) {
-              // Try to find nearby address context
-              const contextMatch = description.match(new RegExp(`([\\d\\w\\s]+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Way)[\\s,]+.*?${keyword}[^,]*?)`, 'i'));
-              if (contextMatch) {
-                address = contextMatch[1].trim();
-                break;
-              }
-            }
-          }
-        }
-        
-        // Update lodging fields only if we have good data
-        if (title && title.length > 3 && title !== 'Bot or Nat') {
-          updateField('lodging.name', title);
-        }
-        
-        if (address && address.length > 5) {
-          updateField('lodging.address', address);
-        }
-        
-        // Add description to notes if it's substantial and helpful
-        if (description && description.length > 100 && !data.lodging.notes) {
-          // Clean up description - remove common VRBO boilerplate
-          let cleanDesc = description
-            .replace(/Book.*VRBO.*now/i, '')
-            .replace(/View.*photos/i, '')
-            .substring(0, 300)
-            .trim();
-          if (cleanDesc.length > 50) {
-            updateField('lodging.notes', cleanDesc);
-          }
-        }
-        
-        addHistory('fetched VRBO listing details');
-        
-        // Show success message
-        if (title && title !== 'Bot or Nat') {
-          alert(`Successfully fetched: ${title}${address ? `\nAddress: ${address}` : '\n(Address not found - please enter manually)'}`);
-        } else {
-          alert('Fetched some data, but property name may need manual correction. Please review and update.');
-        }
-      } else {
-        alert('Could not automatically fetch details. Please enter them manually.');
-      }
-    } catch (error) {
-      console.error('VRBO fetch error:', error);
-      alert('Could not fetch VRBO details. Please enter them manually.');
-    } finally {
-      setFetchingVRBO(false);
-    }
-  };
 
   const trackFlight = async (flightType) => {
     const flight = data.flights[flightType];
@@ -1183,55 +1079,80 @@ export default function App() {
         {activeTab === 'lodging' && <div>
           <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Our Home Base</h2>
           <p style={{ color: '#888', marginBottom: 24 }}>Where we're staying!</p>
+          
           <div style={cardStyle}>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>VRBO Link</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input 
-                  type="url" 
-                  value={data.lodging.vrboLink || ''} 
-                  onChange={e => updateField('lodging.vrboLink', e.target.value, 'updated VRBO link')} 
-                  placeholder="https://www.vrbo.com/..." 
-                  style={{ ...inputStyle, flex: 1 }} 
-                />
-                <button 
-                  onClick={fetchVRBODetails}
-                  disabled={fetchingVRBO || !data.lodging.vrboLink}
-                  style={{ 
-                    ...btnPrimary, 
-                    padding: '12px 20px',
-                    opacity: (!data.lodging.vrboLink || fetchingVRBO) ? 0.5 : 1,
-                    cursor: (!data.lodging.vrboLink || fetchingVRBO) ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {fetchingVRBO ? 'Fetching...' : 'Fetch Details'}
-                </button>
+            {/* Check-in and Check-out at the top */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32, paddingBottom: 24, borderBottom: '2px solid #f0e6ff' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #52c41a, #73d13d)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🔑</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 4 }}>Check-in</div>
+                  {data.lodging.checkIn ? (
+                    <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.checkIn}</div>
+                  ) : (
+                    <input type="text" value={data.lodging.checkIn || ''} onChange={e => updateField('lodging.checkIn', e.target.value)} placeholder="4:00 PM" style={{ ...inputStyle, margin: 0, padding: '8px 12px', fontSize: 18, fontWeight: 600 }} />
+                  )}
+                </div>
               </div>
-              {data.lodging.vrboLink && (
-                <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
-                  Click "Fetch Details" to automatically pull property name, address, and description from the VRBO listing.
-                </p>
-              )}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #f5576c, #ff7875)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🚪</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 4 }}>Check-out</div>
+                  {data.lodging.checkOut ? (
+                    <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.checkOut}</div>
+                  ) : (
+                    <input type="text" value={data.lodging.checkOut || ''} onChange={e => updateField('lodging.checkOut', e.target.value)} placeholder="10:00 AM" style={{ ...inputStyle, margin: 0, padding: '8px 12px', fontSize: 18, fontWeight: 600 }} />
+                  )}
+                </div>
+              </div>
             </div>
-            
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Property Name</label>
-              <input type="text" value={data.lodging.name || ''} onChange={e => updateField('lodging.name', e.target.value, 'updated property name')} placeholder="e.g., Magical Villa" style={inputStyle} />
+
+            {/* Property Information - Display when filled, input when empty */}
+            {data.lodging.name && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Property Name</div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.name}</div>
+              </div>
+            )}
+            {!data.lodging.name && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Property Name</label>
+                <input type="text" value={data.lodging.name || ''} onChange={e => updateField('lodging.name', e.target.value, 'updated property name')} placeholder="e.g., Magical Villa" style={inputStyle} />
+              </div>
+            )}
+
+            {data.lodging.address && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Address</div>
+                <div style={{ fontSize: 16, color: '#4a4a6a', marginBottom: 8 }}>{data.lodging.address}</div>
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.lodging.address)}`} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '8px 16px' }}>📍 Open Maps</a>
+              </div>
+            )}
+            {!data.lodging.address && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Address</label>
+                <input type="text" value={data.lodging.address || ''} onChange={e => updateField('lodging.address', e.target.value, 'updated address')} placeholder="123 Magic Way, Kissimmee, FL" style={inputStyle} />
+              </div>
+            )}
+
+            {data.lodging.vrboLink && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>VRBO Listing</div>
+                <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#667eea', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>🔗 View Listing →</a>
+              </div>
+            )}
+            {!data.lodging.vrboLink && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>VRBO Link</label>
+                <input type="url" value={data.lodging.vrboLink || ''} onChange={e => updateField('lodging.vrboLink', e.target.value, 'updated VRBO link')} placeholder="https://www.vrbo.com/..." style={inputStyle} />
+              </div>
+            )}
+
+            {/* Notes - Always editable */}
+            <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #f0e6ff' }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Important Information</label>
+              <textarea value={data.lodging.notes} onChange={e => updateField('lodging.notes', e.target.value, 'updated lodging notes')} placeholder="Gate code, wifi password, parking instructions, pool rules..." style={textareaStyle} />
             </div>
-            
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Address</label>
-              <input type="text" value={data.lodging.address || ''} onChange={e => updateField('lodging.address', e.target.value, 'updated address')} placeholder="123 Magic Way, Kissimmee, FL" style={inputStyle} />
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-              {['checkIn', 'checkOut'].map(f => <div key={f}><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>{f === 'checkIn' ? 'Check-in' : 'Check-out'}</label><input type="text" value={data.lodging[f]} onChange={e => updateField(`lodging.${f}`, e.target.value)} style={inputStyle} /></div>)}
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Notes</label>
-              <textarea value={data.lodging.notes} onChange={e => updateField('lodging.notes', e.target.value, 'updated lodging notes')} placeholder="Gate code, wifi password, parking instructions..." style={textareaStyle} />
-            </div>
-            {data.lodging.address && <div style={{ display: 'flex', gap: 12, marginTop: 20, flexWrap: 'wrap' }}><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.lodging.address)}`} target="_blank" rel="noopener noreferrer" style={{ ...btnPrimary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>Open Maps</a>{data.lodging.vrboLink && <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>View Listing</a>}</div>}
           </div>
         </div>}
 
