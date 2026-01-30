@@ -84,7 +84,33 @@ const defaultData = {
   ],
   families: [],
   emergency: { hospital: "", pharmacy: "", emergencyContact: "", meetingSpot: "" },
-  recommendations: [],
+  recommendations: [
+    {
+      id: 'ak-rope-drop-strategy',
+      title: 'Animal Kingdom Rope Drop Strategy',
+      description: `ARRIVAL TIMES:
+• Disney Resort Guests: Arrive at bus stop 1 hour before Early Park Entry
+• Off-Property Guests: Arrive at park 45 minutes before regular park open (or 15 min before Early Park Entry)
+
+PARK ENTRY (1 Hour Before Open):
+• Scan into park and head LEFT (Disney Resort Guests) or RIGHT (Non-Resort Guests)
+• Resort guests can queue for attractions; Non-resort guests wait until park open
+
+EARLY PARK ENTRY (30 min before regular open):
+• Start with Flight of Passage, then Na'vi River Journey
+• Breakfast option: Satu'li Canteen
+
+REGULAR PARK OPENING:
+• Non-resort guests: Start with Dinosaur, Expedition Everest, or Kilimanjaro Safari
+• Breakfast options: Yak & Yeti Local Foods Cafe or Kusafiri Bakery
+
+PRO TIP: Ride Flight of Passage right before park closes for shorter waits!`,
+      category: 'Pro Tip',
+      votes: 0,
+      addedBy: 'System',
+      voters: []
+    }
+  ],
   announcements: [],
   editHistory: []
 };
