@@ -289,6 +289,21 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
             <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
             <textarea value={member.otherInfo || ''} onChange={e => onUpdateMember(familyId, member.id, 'otherInfo', e.target.value)} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, resize: 'vertical', minHeight: 80, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
           </div>
+          {isComplete && (
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0f0f0' }}>
+              {deletingMemberId === member.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontSize: 14, color: '#f5576c', fontWeight: 600, marginBottom: 8 }}>Are you sure you want to delete {displayName}?</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => onConfirmDelete(familyId, member.id, true)} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Yes, Delete</button>
+                    <button onClick={() => onConfirmDelete(familyId, member.id, false)} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => onConfirmDelete(familyId, member.id, null)} style={{ width: '100%', padding: '10px 16px', borderRadius: 8, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Delete Member</button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -856,22 +871,32 @@ export default function App() {
 
       {data.announcements.length > 0 && <div style={{ background: 'linear-gradient(90deg, #fff7e6, #fffbe6)', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #ffe58f', position: 'relative', zIndex: 10 }}><span style={{ flex: 1, color: '#d48806' }}>{data.announcements[0].text}</span><span style={{ color: '#888', fontSize: 13 }}>— {data.announcements[0].author}</span></div>}
 
-      <nav style={{ display: 'flex', gap: 8, padding: '16px 24px', background: '#fff', borderBottom: '1px solid #f0e6ff', overflowX: 'auto', position: 'relative', zIndex: 10, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
+      <nav style={{ display: 'flex', gap: 8, padding: '16px 24px', background: '#fff', borderBottom: '1px solid #f0e6ff', overflowX: 'auto', position: 'relative', zIndex: 10, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin', scrollbarColor: '#ccc #f0f0f0' }}>
         {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderRadius: 10, border: '1px solid #e8e0f0', background: activeTab === t.id ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#fff', color: activeTab === t.id ? '#fff' : '#666', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: activeTab === t.id ? 600 : 400, minWidth: 'fit-content', flexShrink: 0 }}><span>{t.label}</span></button>)}
         <style>{`
           nav::-webkit-scrollbar {
-            height: 4px;
+            height: 6px;
           }
           nav::-webkit-scrollbar-track {
             background: #f0f0f0;
-            border-radius: 2px;
+            border-radius: 3px;
           }
           nav::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 2px;
+            background: #999;
+            border-radius: 3px;
           }
           nav::-webkit-scrollbar-thumb:hover {
-            background: #999;
+            background: #666;
+          }
+          @media (max-width: 768px) {
+            nav {
+              padding-left: 16px;
+              padding-right: 16px;
+            }
+            nav button {
+              padding: 10px 16px;
+              font-size: 13px;
+            }
           }
         `}</style>
       </nav>
