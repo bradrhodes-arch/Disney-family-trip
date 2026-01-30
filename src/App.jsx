@@ -416,6 +416,7 @@ export default function App() {
   const [newFamilyLastName, setNewFamilyLastName] = useState('');
   const [step, setStep] = useState('password');
   const [trackingFlights, setTrackingFlights] = useState({ arrival: false, departure: false });
+  const [editingLodging, setEditingLodging] = useState({});
   const btnRef = useRef(null);
 
   useEffect(() => {
