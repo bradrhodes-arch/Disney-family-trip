@@ -252,9 +252,10 @@ function DraggableActivity({ activity, index, onUpdate, onRemove, onDragStart, o
 }
 
 // Family Member Accordion (simplified)
-function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser }) {
+function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser, onConfirmDelete, deletingMemberId }) {
   const displayName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unnamed Member';
   const displayPhone = member.phone || 'No phone';
+  const isComplete = member.firstName && member.lastName && member.phone;
   
   return (
     <div style={{ background: '#fafafa', borderRadius: 12, marginBottom: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
@@ -264,7 +265,6 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
           <div style={{ fontSize: 13, color: '#888' }}>{displayPhone}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={(e) => { e.stopPropagation(); onRemoveMember(familyId, member.id); }} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 16, cursor: 'pointer' }}>×</button>
           <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 12 }}>▼</span>
         </div>
       </div>
@@ -296,8 +296,9 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
 }
 
 // Family Accordion
-function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember, onRemoveMember, onRemoveFamily, currentUser }) {
+function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember, onRemoveMember, onRemoveFamily, currentUser, onConfirmDeleteMember, deletingMemberId }) {
   const [openMembers, setOpenMembers] = useState([]);
+  const [deletingFamily, setDeletingFamily] = useState(false);
   
   return (
     <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
@@ -309,10 +310,21 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button onClick={(e) => { e.stopPropagation(); onRemoveFamily(family.id); }} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 18, cursor: 'pointer' }}>×</button>
+          {family.members.length > 0 && (
+            <button onClick={(e) => { e.stopPropagation(); setDeletingFamily(true); }} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+          )}
           <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 12 }}>▼</span>
         </div>
       </div>
+      {deletingFamily && (
+        <div style={{ padding: '16px 24px', background: '#fff7e6', borderTop: '1px solid #ffe58f' }}>
+          <div style={{ fontSize: 14, color: '#d48806', fontWeight: 600, marginBottom: 12 }}>Are you sure you want to delete the {family.lastName} family?</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => { onRemoveFamily(family.id); setDeletingFamily(false); }} style={{ flex: 1, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Yes, Delete</button>
+            <button onClick={() => setDeletingFamily(false)} style={{ flex: 1, padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
       {isOpen && (
         <div style={{ padding: '24px', borderTop: '1px solid #f0f0f0' }}>
           {family.members.map((member, idx) => (
@@ -326,6 +338,8 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
               onUpdateMember={onUpdateMember}
               onRemoveMember={onRemoveMember}
               currentUser={currentUser}
+              onConfirmDelete={onConfirmDeleteMember}
+              deletingMemberId={deletingMemberId}
             />
           ))}
           <button onClick={() => onAddMember(family.id)} style={{ width: '100%', padding: 14, borderRadius: 10, border: '2px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 14, cursor: 'pointer', marginTop: 12 }}>+ Add Family Member</button>
@@ -417,6 +431,8 @@ export default function App() {
   const [step, setStep] = useState('password');
   const [trackingFlights, setTrackingFlights] = useState({ arrival: false, departure: false });
   const [editingLodging, setEditingLodging] = useState({});
+  const [deletingMember, setDeletingMember] = useState(null);
+  const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', or null
   const btnRef = useRef(null);
 
   useEffect(() => {
@@ -497,9 +513,15 @@ export default function App() {
   }, []);
 
   const save = useCallback(async (d) => {
-    setSaving(true);
-    try { await storage.set(STORAGE_KEY, JSON.stringify(d)); setLastSaved(new Date()); } catch {}
-    setSaving(false);
+    setSaveStatus('saving');
+    try { 
+      await storage.set(STORAGE_KEY, JSON.stringify(d)); 
+      setSaveStatus('saved');
+      // Clear saved status after 2 seconds
+      setTimeout(() => setSaveStatus(null), 2000);
+    } catch {
+      setSaveStatus(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -667,6 +689,20 @@ export default function App() {
     addHistory('removed family member');
   };
 
+  const confirmDeleteMember = (familyId, memberId, confirm) => {
+    if (confirm === null) {
+      // Show confirmation
+      setDeletingMember(memberId);
+    } else if (confirm === true) {
+      // Actually delete
+      removeFamilyMember(familyId, memberId);
+      setDeletingMember(null);
+    } else {
+      // Cancel
+      setDeletingMember(null);
+    }
+  };
+
   const updateFamilyMember = (familyId, memberId, field, value) => {
     setData(p => ({
       ...p,
@@ -812,15 +848,32 @@ export default function App() {
       <header style={{ background: '#fff', borderBottom: '1px solid #f0e6ff', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><MagicCastle size={45} /><div><h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{data.tripInfo.title}</h1><p style={{ margin: '2px 0 0', color: '#764ba2', fontSize: 13 }}>✨ {data.tripInfo.dates} ✨</p></div></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {saving ? <span style={{ padding: '6px 12px', borderRadius: 20, background: '#fff7e6', color: '#d48806', fontSize: 13 }}>💾 Saving...</span> : lastSaved && <span style={{ padding: '6px 12px', borderRadius: 20, background: '#f6ffed', color: '#52c41a', fontSize: 13 }}>✓ Saved</span>}
+          {saveStatus === 'saving' && <span style={{ padding: '6px 12px', borderRadius: 20, background: '#fff7e6', color: '#d48806', fontSize: 13 }}>Saving...</span>}
+          {saveStatus === 'saved' && <span style={{ padding: '6px 12px', borderRadius: 20, background: '#f6ffed', color: '#52c41a', fontSize: 13 }}>Saved</span>}
           <UserBadge user={currentUser} onLogout={logout} />
         </div>
       </header>
 
       {data.announcements.length > 0 && <div style={{ background: 'linear-gradient(90deg, #fff7e6, #fffbe6)', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #ffe58f', position: 'relative', zIndex: 10 }}><span style={{ flex: 1, color: '#d48806' }}>{data.announcements[0].text}</span><span style={{ color: '#888', fontSize: 13 }}>— {data.announcements[0].author}</span></div>}
 
-      <nav style={{ display: 'flex', gap: 8, padding: '16px 24px', background: '#fff', borderBottom: '1px solid #f0e6ff', overflowX: 'auto', position: 'relative', zIndex: 10 }}>
-        {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderRadius: 10, border: '1px solid #e8e0f0', background: activeTab === t.id ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#fff', color: activeTab === t.id ? '#fff' : '#666', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: activeTab === t.id ? 600 : 400 }}><span>{t.label}</span></button>)}
+      <nav style={{ display: 'flex', gap: 8, padding: '16px 24px', background: '#fff', borderBottom: '1px solid #f0e6ff', overflowX: 'auto', position: 'relative', zIndex: 10, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin' }}>
+        {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderRadius: 10, border: '1px solid #e8e0f0', background: activeTab === t.id ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#fff', color: activeTab === t.id ? '#fff' : '#666', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: activeTab === t.id ? 600 : 400, minWidth: 'fit-content', flexShrink: 0 }}><span>{t.label}</span></button>)}
+        <style>{`
+          nav::-webkit-scrollbar {
+            height: 4px;
+          }
+          nav::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 2px;
+          }
+          nav::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 2px;
+          }
+          nav::-webkit-scrollbar-thumb:hover {
+            background: #999;
+          }
+        `}</style>
       </nav>
 
       <main style={{ padding: 24, maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 10 }}>
@@ -902,6 +955,8 @@ export default function App() {
                 onRemoveMember={removeFamilyMember}
                 onRemoveFamily={removeFamily}
                 currentUser={currentUser}
+                onConfirmDeleteMember={confirmDeleteMember}
+                deletingMemberId={deletingMember}
               />
             ))}
             {(!data.families || data.families.length === 0) && !showAddFamilyForm && (
