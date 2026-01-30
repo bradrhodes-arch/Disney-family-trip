@@ -374,7 +374,7 @@ function EditableField({ label, value, type = 'text', placeholder, onSave, onDel
 }
 
 // Family Member Accordion (simplified)
-function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser, onConfirmDelete, deletingMemberId }) {
+function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser, onConfirmDelete, deletingMemberId, setData }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     firstName: member.firstName || '',
@@ -403,13 +403,27 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
   const isComplete = member.firstName && member.lastName && member.phone;
 
   const handleSave = () => {
-    onUpdateMember(familyId, member.id, 'firstName', editData.firstName);
-    onUpdateMember(familyId, member.id, 'lastName', editData.lastName);
-    onUpdateMember(familyId, member.id, 'birthdate', editData.birthdate);
-    onUpdateMember(familyId, member.id, 'phone', editData.phone);
-    onUpdateMember(familyId, member.id, 'emergencyContactName', editData.emergencyContactName);
-    onUpdateMember(familyId, member.id, 'emergencyContactPhone', editData.emergencyContactPhone);
-    onUpdateMember(familyId, member.id, 'otherInfo', editData.otherInfo);
+    // Batch all updates into a single state update
+    setData(p => {
+      const updated = JSON.parse(JSON.stringify(p));
+      const family = updated.families.find(f => f.id === familyId);
+      if (family) {
+        const memberIndex = family.members.findIndex(m => m.id === member.id);
+        if (memberIndex !== -1) {
+          family.members[memberIndex] = {
+            ...family.members[memberIndex],
+            firstName: editData.firstName,
+            lastName: editData.lastName,
+            birthdate: editData.birthdate,
+            phone: editData.phone,
+            emergencyContactName: editData.emergencyContactName,
+            emergencyContactPhone: editData.emergencyContactPhone,
+            otherInfo: editData.otherInfo
+          };
+        }
+      }
+      return updated;
+    });
     setIsEditing(false);
   };
 
@@ -438,56 +452,56 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
   };
 
   return (
-    <div style={{ background: '#fafafa', borderRadius: 12, marginBottom: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', cursor: 'pointer' }} onClick={onToggle}>
+    <div style={{ background: '#fafafa', borderRadius: 8, marginBottom: 8, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', cursor: 'pointer' }} onClick={onToggle}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#4a4a6a', marginBottom: 4 }}>{displayName}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#4a4a6a', marginBottom: 2 }}>{displayName}</div>
           {displayPhone ? (
-            <div style={{ fontSize: 13, color: '#888', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 12, color: '#888', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>Phone:</span>
               <a href={`tel:${displayPhone.replace(/\D/g, '')}`} onClick={(e) => e.stopPropagation()} style={{ color: '#667eea', textDecoration: 'none', fontWeight: 500 }}>{displayPhone}</a>
-              <span style={{ color: '#ccc', margin: '0 4px' }}>•</span>
-              <a href={`sms:${displayPhone.replace(/\D/g, '')}`} onClick={(e) => e.stopPropagation()} style={{ color: '#667eea', textDecoration: 'none', fontSize: 12 }}>Text</a>
+              <span style={{ color: '#ccc', margin: '0 2px' }}>•</span>
+              <a href={`sms:${displayPhone.replace(/\D/g, '')}`} onClick={(e) => e.stopPropagation()} style={{ color: '#667eea', textDecoration: 'none', fontSize: 11 }}>Text</a>
             </div>
           ) : (
-            <div style={{ fontSize: 13, color: '#ccc' }}>No phone</div>
+            <div style={{ fontSize: 12, color: '#ccc' }}>No phone</div>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 12 }}>▼</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 10 }}>▼</span>
         </div>
       </div>
       {isOpen && (
-        <div style={{ padding: '20px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
+        <div style={{ padding: '12px 14px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
           {!isEditing ? (
             <>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-                <button onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#667eea', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Edit</button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                <button onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e8e0f0', background: '#fff', color: '#667eea', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Edit</button>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>First Name</label>
-                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>First Name</label>
+                  <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 13, color: '#4a4a6a' }}>
                     {member.firstName || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Last Name</label>
-                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Last Name</label>
+                  <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 13, color: '#4a4a6a' }}>
                     {member.lastName || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Birthdate</label>
-                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Birthdate</label>
+                  <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 13, color: '#4a4a6a' }}>
                     {member.birthdate ? new Date(member.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Phone Number</label>
-                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Phone Number</label>
+                  <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 13, color: '#4a4a6a' }}>
                     {member.phone ? (
                       <a href={`tel:${member.phone.replace(/\D/g, '')}`} style={{ color: '#667eea', textDecoration: 'none', fontWeight: 500 }}>{member.phone}</a>
                     ) : (
@@ -496,18 +510,18 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
                   </div>
                 </div>
               </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#aaa', marginBottom: 4 }}>Name</label>
-                    <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: '#aaa', marginBottom: 3 }}>Name</label>
+                    <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 13, color: '#4a4a6a' }}>
                       {member.emergencyContactName || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#aaa', marginBottom: 4 }}>Phone</label>
-                    <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: '#aaa', marginBottom: 3 }}>Phone</label>
+                    <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 13, color: '#4a4a6a' }}>
                       {member.emergencyContactPhone ? (
                         <a href={`tel:${member.emergencyContactPhone.replace(/\D/g, '')}`} style={{ color: '#667eea', textDecoration: 'none' }}>{member.emergencyContactPhone}</a>
                       ) : (
@@ -517,64 +531,64 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
                   </div>
                 </div>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
-                <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 80, whiteSpace: 'pre-wrap' }}>
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Other Important Info</label>
+                <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 13, color: '#4a4a6a', minHeight: 60, whiteSpace: 'pre-wrap' }}>
                   {member.otherInfo || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
                 </div>
               </div>
               {isComplete && (
-                <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0f0f0' }}>
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
                   {deletingMemberId === member.id ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div style={{ fontSize: 14, color: '#f5576c', fontWeight: 600, marginBottom: 8 }}>Are you sure you want to delete {displayName}?</div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => onConfirmDelete(familyId, member.id, true)} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Yes, Delete</button>
-                        <button onClick={() => onConfirmDelete(familyId, member.id, false)} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ fontSize: 13, color: '#f5576c', fontWeight: 600, marginBottom: 6 }}>Are you sure you want to delete {displayName}?</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => onConfirmDelete(familyId, member.id, true)} style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Yes, Delete</button>
+                        <button onClick={() => onConfirmDelete(familyId, member.id, false)} style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => onConfirmDelete(familyId, member.id, null)} style={{ width: '100%', padding: '10px 16px', borderRadius: 8, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Delete Member</button>
+                    <button onClick={() => onConfirmDelete(familyId, member.id, null)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Delete Member</button>
                   )}
                 </div>
               )}
             </>
           ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>First Name</label>
-                  <input type="text" value={editData.firstName} onChange={e => setEditData({...editData, firstName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="First name" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Last Name</label>
-                  <input type="text" value={editData.lastName} onChange={e => setEditData({...editData, lastName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Last name" style={inputStyle} />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Birthdate</label>
-                  <input type="date" value={editData.birthdate} onChange={e => setEditData({...editData, birthdate: e.target.value})} onClick={(e) => e.stopPropagation()} style={inputStyle} />
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>First Name</label>
+                  <input type="text" value={editData.firstName} onChange={e => setEditData({...editData, firstName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="First name" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Phone Number</label>
-                  <input type="tel" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="(555) 123-4567" style={inputStyle} />
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Last Name</label>
+                  <input type="text" value={editData.lastName} onChange={e => setEditData({...editData, lastName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Last name" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
                 </div>
               </div>
-              <div style={{ marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <input type="text" value={editData.emergencyContactName} onChange={e => setEditData({...editData, emergencyContactName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Name" style={inputStyle} />
-                  <input type="tel" value={editData.emergencyContactPhone} onChange={e => setEditData({...editData, emergencyContactPhone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Phone number" style={inputStyle} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Birthdate</label>
+                  <input type="date" value={editData.birthdate} onChange={e => setEditData({...editData, birthdate: e.target.value})} onClick={(e) => e.stopPropagation()} style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Phone Number</label>
+                  <input type="tel" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="(555) 123-4567" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
                 </div>
               </div>
-              <div style={{ marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
-                <textarea value={editData.otherInfo} onChange={e => setEditData({...editData, otherInfo: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
+              <div style={{ marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input type="text" value={editData.emergencyContactName} onChange={e => setEditData({...editData, emergencyContactName: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Name" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
+                  <input type="tel" value={editData.emergencyContactPhone} onChange={e => setEditData({...editData, emergencyContactPhone: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Phone number" style={{...inputStyle, padding: '8px 12px', fontSize: 13}} />
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 20 }} onClick={(e) => e.stopPropagation()}>
-                <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Save</button>
-                <button onClick={(e) => { e.stopPropagation(); handleCancel(); }} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+              <div style={{ marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Other Important Info</label>
+                <textarea value={editData.otherInfo} onChange={e => setEditData({...editData, otherInfo: e.target.value})} onClick={(e) => e.stopPropagation()} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ ...inputStyle, padding: '8px 12px', fontSize: 13, resize: 'vertical', minHeight: 60 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginTop: 12 }} onClick={(e) => e.stopPropagation()}>
+                <button onClick={(e) => { e.stopPropagation(); handleSave(); }} style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Save</button>
+                <button onClick={(e) => { e.stopPropagation(); handleCancel(); }} style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
               </div>
             </>
           )}
@@ -585,37 +599,37 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
 }
 
 // Family Accordion
-function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember, onRemoveMember, onRemoveFamily, currentUser, onConfirmDeleteMember, deletingMemberId }) {
+function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember, onRemoveMember, onRemoveFamily, currentUser, onConfirmDeleteMember, deletingMemberId, setData }) {
   const [openMembers, setOpenMembers] = useState([]);
   const [deletingFamily, setDeletingFamily] = useState(false);
   
   return (
-    <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderLeft: '4px solid #667eea', cursor: 'pointer' }} onClick={onToggle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+    <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderLeft: '3px solid #667eea', cursor: 'pointer' }} onClick={onToggle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{family.lastName} Family</div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>{family.members.length} {family.members.length === 1 ? 'member' : 'members'}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#4a4a6a' }}>{family.lastName} Family</div>
+            <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>{family.members.length} {family.members.length === 1 ? 'member' : 'members'}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {family.members.length > 0 && (
-            <button onClick={(e) => { e.stopPropagation(); setDeletingFamily(true); }} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+            <button onClick={(e) => { e.stopPropagation(); setDeletingFamily(true); }} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
           )}
-          <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 12 }}>▼</span>
+          <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 10 }}>▼</span>
         </div>
       </div>
       {deletingFamily && (
-        <div style={{ padding: '16px 24px', background: '#fff7e6', borderTop: '1px solid #ffe58f' }}>
-          <div style={{ fontSize: 14, color: '#d48806', fontWeight: 600, marginBottom: 12 }}>Are you sure you want to delete the {family.lastName} family?</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => { onRemoveFamily(family.id); setDeletingFamily(false); }} style={{ flex: 1, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Yes, Delete</button>
-            <button onClick={() => setDeletingFamily(false)} style={{ flex: 1, padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+        <div style={{ padding: '12px 16px', background: '#fff7e6', borderTop: '1px solid #ffe58f' }}>
+          <div style={{ fontSize: 13, color: '#d48806', fontWeight: 600, marginBottom: 8 }}>Are you sure you want to delete the {family.lastName} family?</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => { onRemoveFamily(family.id); setDeletingFamily(false); }} style={{ flex: 1, padding: '6px 12px', borderRadius: 6, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Yes, Delete</button>
+            <button onClick={() => setDeletingFamily(false)} style={{ flex: 1, padding: '6px 12px', borderRadius: 6, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
           </div>
         </div>
       )}
       {isOpen && (
-        <div style={{ padding: '24px', borderTop: '1px solid #f0f0f0' }}>
+        <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
           {family.members.map((member, idx) => (
             <FamilyMemberAccordion
               key={member.id}
@@ -629,9 +643,10 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
               currentUser={currentUser}
               onConfirmDelete={onConfirmDeleteMember}
               deletingMemberId={deletingMemberId}
+              setData={setData}
             />
           ))}
-          <button onClick={() => onAddMember(family.id)} style={{ width: '100%', padding: 14, borderRadius: 10, border: '2px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 14, cursor: 'pointer', marginTop: 12 }}>+ Add Family Member</button>
+          <button onClick={() => onAddMember(family.id)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 13, cursor: 'pointer', marginTop: 8 }}>+ Add Family Member</button>
         </div>
       )}
     </div>
@@ -1292,6 +1307,7 @@ export default function App() {
                 currentUser={currentUser}
                 onConfirmDeleteMember={confirmDeleteMember}
                 deletingMemberId={deletingMember}
+                setData={setData}
               />
             ))}
             {(!data.families || data.families.length === 0) && !showAddFamilyForm && (
