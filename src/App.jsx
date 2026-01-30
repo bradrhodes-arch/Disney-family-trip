@@ -375,14 +375,66 @@ function EditableField({ label, value, type = 'text', placeholder, onSave, onDel
 
 // Family Member Accordion (simplified)
 function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser, onConfirmDelete, deletingMemberId }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    firstName: member.firstName || '',
+    lastName: member.lastName || '',
+    birthdate: member.birthdate || '',
+    phone: member.phone || '',
+    emergencyContactName: member.emergencyContactName || '',
+    emergencyContactPhone: member.emergencyContactPhone || '',
+    otherInfo: member.otherInfo || ''
+  });
+
+  useEffect(() => {
+    setEditData({
+      firstName: member.firstName || '',
+      lastName: member.lastName || '',
+      birthdate: member.birthdate || '',
+      phone: member.phone || '',
+      emergencyContactName: member.emergencyContactName || '',
+      emergencyContactPhone: member.emergencyContactPhone || '',
+      otherInfo: member.otherInfo || ''
+    });
+  }, [member]);
+
   const displayName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unnamed Member';
-  const displayPhone = member.phone || 'No phone';
+  const displayPhone = member.phone || '';
   const isComplete = member.firstName && member.lastName && member.phone;
-  
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const handleSave = () => {
+    onUpdateMember(familyId, member.id, 'firstName', editData.firstName);
+    onUpdateMember(familyId, member.id, 'lastName', editData.lastName);
+    onUpdateMember(familyId, member.id, 'birthdate', editData.birthdate);
+    onUpdateMember(familyId, member.id, 'phone', editData.phone);
+    onUpdateMember(familyId, member.id, 'emergencyContactName', editData.emergencyContactName);
+    onUpdateMember(familyId, member.id, 'emergencyContactPhone', editData.emergencyContactPhone);
+    onUpdateMember(familyId, member.id, 'otherInfo', editData.otherInfo);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditData({
+      firstName: member.firstName || '',
+      lastName: member.lastName || '',
+      birthdate: member.birthdate || '',
+      phone: member.phone || '',
+      emergencyContactName: member.emergencyContactName || '',
+      emergencyContactPhone: member.emergencyContactPhone || '',
+      otherInfo: member.otherInfo || ''
+    });
+    setIsEditing(false);
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: 10,
+    border: '1px solid #e8e0f0',
+    fontSize: 14,
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit'
   };
 
   return (
@@ -390,7 +442,16 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', cursor: 'pointer' }} onClick={onToggle}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: '#4a4a6a', marginBottom: 4 }}>{displayName}</div>
-          <div style={{ fontSize: 13, color: '#888' }}>{displayPhone}</div>
+          {displayPhone ? (
+            <div style={{ fontSize: 13, color: '#888', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>Phone:</span>
+              <a href={`tel:${displayPhone.replace(/\D/g, '')}`} onClick={(e) => e.stopPropagation()} style={{ color: '#667eea', textDecoration: 'none', fontWeight: 500 }}>{displayPhone}</a>
+              <span style={{ color: '#ccc', margin: '0 4px' }}>•</span>
+              <a href={`sms:${displayPhone.replace(/\D/g, '')}`} onClick={(e) => e.stopPropagation()} style={{ color: '#667eea', textDecoration: 'none', fontSize: 12 }}>Text</a>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: '#ccc' }}>No phone</div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 12 }}>▼</span>
@@ -398,75 +459,124 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
       </div>
       {isOpen && (
         <div style={{ padding: '20px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <EditableField
-              label="First Name"
-              value={member.firstName}
-              placeholder="First name"
-              onSave={(val) => onUpdateMember(familyId, member.id, 'firstName', val)}
-            />
-            <EditableField
-              label="Last Name"
-              value={member.lastName}
-              placeholder="Last name"
-              onSave={(val) => onUpdateMember(familyId, member.id, 'lastName', val)}
-            />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <EditableField
-              label="Birthdate"
-              value={member.birthdate}
-              type="date"
-              dateFormat={formatDate}
-              onSave={(val) => onUpdateMember(familyId, member.id, 'birthdate', val)}
-            />
-            <EditableField
-              label="Phone Number"
-              value={member.phone}
-              type="tel"
-              placeholder="(555) 123-4567"
-              onSave={(val) => onUpdateMember(familyId, member.id, 'phone', val)}
-            />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <EditableField
-                label=""
-                value={member.emergencyContactName}
-                placeholder="Name"
-                onSave={(val) => onUpdateMember(familyId, member.id, 'emergencyContactName', val)}
-              />
-              <EditableField
-                label=""
-                value={member.emergencyContactPhone}
-                type="tel"
-                placeholder="Phone number"
-                onSave={(val) => onUpdateMember(familyId, member.id, 'emergencyContactPhone', val)}
-              />
-            </div>
-          </div>
-          <EditableField
-            label="Other Important Info"
-            value={member.otherInfo}
-            placeholder="Dietary restrictions, medical info, allergies, special needs..."
-            textarea={true}
-            onSave={(val) => onUpdateMember(familyId, member.id, 'otherInfo', val)}
-          />
-          {isComplete && (
-            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0f0f0' }}>
-              {deletingMemberId === member.id ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ fontSize: 14, color: '#f5576c', fontWeight: 600, marginBottom: 8 }}>Are you sure you want to delete {displayName}?</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => onConfirmDelete(familyId, member.id, true)} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Yes, Delete</button>
-                    <button onClick={() => onConfirmDelete(familyId, member.id, false)} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+          {!isEditing ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+                <button onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#667eea', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Edit</button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>First Name</label>
+                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                    {member.firstName || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
                   </div>
                 </div>
-              ) : (
-                <button onClick={() => onConfirmDelete(familyId, member.id, null)} style={{ width: '100%', padding: '10px 16px', borderRadius: 8, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Delete Member</button>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Last Name</label>
+                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                    {member.lastName || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Birthdate</label>
+                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                    {member.birthdate ? new Date(member.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Phone Number</label>
+                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                    {member.phone ? (
+                      <a href={`tel:${member.phone.replace(/\D/g, '')}`} style={{ color: '#667eea', textDecoration: 'none', fontWeight: 500 }}>{member.phone}</a>
+                    ) : (
+                      <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#aaa', marginBottom: 4 }}>Name</label>
+                    <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                      {member.emergencyContactName || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#aaa', marginBottom: 4 }}>Phone</label>
+                    <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 20 }}>
+                      {member.emergencyContactPhone ? (
+                        <a href={`tel:${member.emergencyContactPhone.replace(/\D/g, '')}`} style={{ color: '#667eea', textDecoration: 'none' }}>{member.emergencyContactPhone}</a>
+                      ) : (
+                        <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
+                <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 14, color: '#4a4a6a', minHeight: 80, whiteSpace: 'pre-wrap' }}>
+                  {member.otherInfo || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
+                </div>
+              </div>
+              {isComplete && (
+                <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0f0f0' }}>
+                  {deletingMemberId === member.id ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ fontSize: 14, color: '#f5576c', fontWeight: 600, marginBottom: 8 }}>Are you sure you want to delete {displayName}?</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => onConfirmDelete(familyId, member.id, true)} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#f5576c', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Yes, Delete</button>
+                        <button onClick={() => onConfirmDelete(familyId, member.id, false)} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => onConfirmDelete(familyId, member.id, null)} style={{ width: '100%', padding: '10px 16px', borderRadius: 8, border: '1px solid #fff0f0', background: '#fff', color: '#f5576c', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Delete Member</button>
+                  )}
+                </div>
               )}
-            </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>First Name</label>
+                  <input type="text" value={editData.firstName} onChange={e => setEditData({...editData, firstName: e.target.value})} placeholder="First name" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Last Name</label>
+                  <input type="text" value={editData.lastName} onChange={e => setEditData({...editData, lastName: e.target.value})} placeholder="Last name" style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Birthdate</label>
+                  <input type="date" value={editData.birthdate} onChange={e => setEditData({...editData, birthdate: e.target.value})} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Phone Number</label>
+                  <input type="tel" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} placeholder="(555) 123-4567" style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <input type="text" value={editData.emergencyContactName} onChange={e => setEditData({...editData, emergencyContactName: e.target.value})} placeholder="Name" style={inputStyle} />
+                  <input type="tel" value={editData.emergencyContactPhone} onChange={e => setEditData({...editData, emergencyContactPhone: e.target.value})} placeholder="Phone number" style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
+                <textarea value={editData.otherInfo} onChange={e => setEditData({...editData, otherInfo: e.target.value})} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                <button onClick={handleSave} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Save</button>
+                <button onClick={handleCancel} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #e8e0f0', background: '#fff', color: '#666', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+              </div>
+            </>
           )}
         </div>
       )}
