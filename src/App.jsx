@@ -1108,18 +1108,25 @@ export default function App() {
   };
 
   const updateDay = (dayId, idx, val) => {
+    if (!data) return;
     setData(p => ({ ...p, days: p.days.map(d => d.id === dayId ? { ...d, activities: d.activities.map((a, i) => i === idx ? { text: val, editedBy: currentUser?.name } : a) } : d) }));
-    addHistory(`edited ${data.days.find(d => d.id === dayId)?.label}`);
+    const dayLabel = data?.days?.find(d => d.id === dayId)?.label || 'day';
+    addHistory(`edited ${dayLabel}`);
   };
   const addActivity = (dayId) => {
+    if (!data) return;
     setData(p => ({ ...p, days: p.days.map(d => d.id === dayId ? { ...d, activities: [...d.activities, { text: '', editedBy: currentUser?.name }] } : d) }));
-    addHistory(`added activity to ${data.days.find(d => d.id === dayId)?.label}`);
+    const dayLabel = data?.days?.find(d => d.id === dayId)?.label || 'day';
+    addHistory(`added activity to ${dayLabel}`);
   };
   const removeActivity = (dayId, idx) => {
+    if (!data) return;
     setData(p => ({ ...p, days: p.days.map(d => d.id === dayId ? { ...d, activities: d.activities.filter((_, i) => i !== idx) } : d) }));
-    addHistory(`removed activity from ${data.days.find(d => d.id === dayId)?.label}`);
+    const dayLabel = data?.days?.find(d => d.id === dayId)?.label || 'day';
+    addHistory(`removed activity from ${dayLabel}`);
   };
   const reorderActivities = (dayId, fromIndex, toIndex) => {
+    if (!data) return;
     setData(p => ({
       ...p,
       days: p.days.map(d => {
@@ -1133,7 +1140,8 @@ export default function App() {
         return d;
       })
     }));
-    addHistory(`reordered activities in ${data.days.find(d => d.id === dayId)?.label}`);
+    const dayLabel = data?.days?.find(d => d.id === dayId)?.label || 'day';
+    addHistory(`reordered activities in ${dayLabel}`);
   };
 
   // Migrate old contacts structure to families if needed
@@ -1282,6 +1290,7 @@ export default function App() {
 
 
   const trackFlight = async (flightType) => {
+    if (!data || !data?.flights) return;
     const flight = data.flights[flightType];
     if (!flight || !flight.flightNumber || !flight.airline) return;
     
