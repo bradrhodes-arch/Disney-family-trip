@@ -416,6 +416,7 @@ export default function App() {
   const [newFamilyLastName, setNewFamilyLastName] = useState('');
   const [step, setStep] = useState('password');
   const [trackingFlights, setTrackingFlights] = useState({ arrival: false, departure: false });
+  const [fetchingVRBO, setFetchingVRBO] = useState(false);
   const btnRef = useRef(null);
 
   useEffect(() => {
@@ -691,6 +692,66 @@ export default function App() {
   const votePoll = (pollId, optionIndex) => { setData(p => ({ ...p, polls: p.polls.map(poll => poll.id === pollId ? { ...poll, options: poll.options.map((opt, idx) => idx === optionIndex && !opt.voters.includes(currentUser?.name) ? { ...opt, votes: opt.votes + 1, voters: [...opt.voters, currentUser?.name] } : opt) } : poll) })); };
   const removePoll = (pollId) => { setData(p => ({ ...p, polls: p.polls.filter(poll => poll.id !== pollId) })); addHistory('removed poll'); };
   const updateField = (path, val, desc) => { setData(p => { const d = JSON.parse(JSON.stringify(p)); const k = path.split('.'); let c = d; for (let i = 0; i < k.length - 1; i++) c = c[k[i]]; c[k[k.length - 1]] = val; return d; }); if (desc) addHistory(desc); };
+
+  const fetchVRBODetails = async () => {
+    const vrboLink = data.lodging?.vrboLink;
+    if (!vrboLink || !vrboLink.includes('vrbo.com')) {
+      alert('Please enter a valid VRBO link first');
+      return;
+    }
+
+    setFetchingVRBO(true);
+    try {
+      // Use Microlink API to extract metadata from VRBO page
+      // This is a free service that extracts metadata from URLs
+      const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(vrboLink)}`;
+      
+      const response = await fetch(microlinkUrl);
+      const result = await response.json();
+      
+      if (result.status === 'success' && result.data) {
+        const metadata = result.data;
+        
+        // Extract information from metadata
+        const title = metadata.title || metadata['og:title'] || '';
+        const description = metadata.description || metadata['og:description'] || '';
+        
+        // Try to extract address from title or description
+        let address = '';
+        if (description) {
+          // Look for address patterns in description
+          const addressMatch = description.match(/(\d+[\s\w]+,?\s*[A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5})/);
+          if (addressMatch) {
+            address = addressMatch[1];
+          }
+        }
+        
+        // Update lodging fields
+        if (title && !data.lodging.name) {
+          updateField('lodging.name', title.replace(/ - VRBO$| \| VRBO$/i, '').trim());
+        }
+        
+        if (address && !data.lodging.address) {
+          updateField('lodging.address', address);
+        }
+        
+        // Add description to notes if helpful
+        if (description && description.length > 50 && !data.lodging.notes) {
+          updateField('lodging.notes', description.substring(0, 200));
+        }
+        
+        addHistory('fetched VRBO listing details');
+      } else {
+        // Fallback: Try to extract basic info from URL or use manual entry
+        alert('Could not automatically fetch details. Please enter them manually.');
+      }
+    } catch (error) {
+      console.error('VRBO fetch error:', error);
+      alert('Could not fetch VRBO details. Please enter them manually.');
+    } finally {
+      setFetchingVRBO(false);
+    }
+  };
 
   const trackFlight = async (flightType) => {
     const flight = data.flights[flightType];
@@ -1079,11 +1140,53 @@ export default function App() {
           <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Our Home Base</h2>
           <p style={{ color: '#888', marginBottom: 24 }}>Where we're staying!</p>
           <div style={cardStyle}>
-            {[{ k: 'name', l: 'Property Name', p: 'e.g., Magical Villa' }, { k: 'address', l: 'Address', p: '123 Magic Way, Kissimmee, FL' }, { k: 'vrboLink', l: 'VRBO Link', p: 'https://vrbo.com/...' }].map(f => <div key={f.k} style={{ marginBottom: 16 }}><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>{f.l}</label><input type="text" value={data.lodging[f.k]} onChange={e => updateField(`lodging.${f.k}`, e.target.value, `updated ${f.l}`)} placeholder={f.p} style={inputStyle} /></div>)}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>VRBO Link</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input 
+                  type="url" 
+                  value={data.lodging.vrboLink || ''} 
+                  onChange={e => updateField('lodging.vrboLink', e.target.value, 'updated VRBO link')} 
+                  placeholder="https://www.vrbo.com/..." 
+                  style={{ ...inputStyle, flex: 1 }} 
+                />
+                <button 
+                  onClick={fetchVRBODetails}
+                  disabled={fetchingVRBO || !data.lodging.vrboLink}
+                  style={{ 
+                    ...btnPrimary, 
+                    padding: '12px 20px',
+                    opacity: (!data.lodging.vrboLink || fetchingVRBO) ? 0.5 : 1,
+                    cursor: (!data.lodging.vrboLink || fetchingVRBO) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {fetchingVRBO ? 'Fetching...' : 'Fetch Details'}
+                </button>
+              </div>
+              {data.lodging.vrboLink && (
+                <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+                  Click "Fetch Details" to automatically pull property name, address, and description from the VRBO listing.
+                </p>
+              )}
+            </div>
+            
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Property Name</label>
+              <input type="text" value={data.lodging.name || ''} onChange={e => updateField('lodging.name', e.target.value, 'updated property name')} placeholder="e.g., Magical Villa" style={inputStyle} />
+            </div>
+            
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Address</label>
+              <input type="text" value={data.lodging.address || ''} onChange={e => updateField('lodging.address', e.target.value, 'updated address')} placeholder="123 Magic Way, Kissimmee, FL" style={inputStyle} />
+            </div>
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               {['checkIn', 'checkOut'].map(f => <div key={f}><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>{f === 'checkIn' ? 'Check-in' : 'Check-out'}</label><input type="text" value={data.lodging[f]} onChange={e => updateField(`lodging.${f}`, e.target.value)} style={inputStyle} /></div>)}
             </div>
-            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Notes</label><textarea value={data.lodging.notes} onChange={e => updateField('lodging.notes', e.target.value, 'updated lodging notes')} placeholder="Gate code, wifi..." style={textareaStyle} /></div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Notes</label>
+              <textarea value={data.lodging.notes} onChange={e => updateField('lodging.notes', e.target.value, 'updated lodging notes')} placeholder="Gate code, wifi password, parking instructions..." style={textareaStyle} />
+            </div>
             {data.lodging.address && <div style={{ display: 'flex', gap: 12, marginTop: 20, flexWrap: 'wrap' }}><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.lodging.address)}`} target="_blank" rel="noopener noreferrer" style={{ ...btnPrimary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>Open Maps</a>{data.lodging.vrboLink && <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>View Listing</a>}</div>}
           </div>
         </div>}
