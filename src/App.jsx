@@ -291,7 +291,23 @@ function EditableField({ label, value, type = 'text', placeholder, onSave, onDel
   };
 
   const isEmpty = !value;
+  const isUrl = type === 'url' && value && (value.startsWith('http://') || value.startsWith('https://'));
   const displayValue = isEmpty ? null : (type === 'date' && dateFormat ? dateFormat(value) : value);
+  
+  // Shorten URL for display
+  const shortenUrl = (url) => {
+    if (!url) return '';
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/').filter(p => p);
+      if (pathParts.length > 0) {
+        return `${urlObj.hostname}${pathParts[0] ? '/' + pathParts[0] : ''}`;
+      }
+      return urlObj.hostname;
+    } catch {
+      return url.length > 50 ? url.substring(0, 47) + '...' : url;
+    }
+  };
 
   const inputStyle = {
     width: '100%',
@@ -343,8 +359,12 @@ function EditableField({ label, value, type = 'text', placeholder, onSave, onDel
           <div style={{ flex: 1, padding: '12px 16px', borderRadius: 10, background: isEmpty ? '#fafafa' : '#fff', border: isEmpty ? '1px dashed #e8e0f0' : '1px solid #f0f0f0', minHeight: textarea ? 80 : 'auto' }}>
             {isEmpty ? (
               <span style={{ color: '#ccc', fontStyle: 'italic' }}>{placeholder || 'Not set'}</span>
+            ) : isUrl ? (
+              <a href={value} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#667eea', textDecoration: 'none', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                🔗 {shortenUrl(value)} →
+              </a>
             ) : (
-              <div style={{ fontSize: 14, color: '#4a4a6a', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+              <div style={{ fontSize: 14, color: '#4a4a6a', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {displayValue}
               </div>
             )}
@@ -404,32 +424,41 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
 
   const handleSave = (e) => {
     e?.stopPropagation();
-    // Batch all updates into a single state update using setData prop
+    // Always use setData if available - it's more reliable
     if (setData) {
       setData(p => {
-        if (!p || !p.families) return p;
+        if (!p || !p.families) {
+          console.error('Invalid data structure:', p);
+          return p;
+        }
         const updated = JSON.parse(JSON.stringify(p));
         const family = updated.families.find(f => f.id === familyId);
-        if (family) {
-          const memberIndex = family.members.findIndex(m => m.id === member.id);
-          if (memberIndex !== -1) {
-            family.members[memberIndex] = {
-              ...family.members[memberIndex],
-              firstName: editData.firstName,
-              lastName: editData.lastName,
-              birthdate: editData.birthdate,
-              phone: editData.phone,
-              emergencyContactName: editData.emergencyContactName,
-              emergencyContactPhone: editData.emergencyContactPhone,
-              otherInfo: editData.otherInfo,
-              lastEditedBy: currentUser?.name
-            };
-          }
+        if (!family) {
+          console.error('Family not found:', familyId);
+          return updated;
         }
+        const memberIndex = family.members.findIndex(m => m.id === member.id);
+        if (memberIndex === -1) {
+          console.error('Member not found:', member.id);
+          return updated;
+        }
+        // Update the member with all fields
+        family.members[memberIndex] = {
+          ...family.members[memberIndex],
+          firstName: editData.firstName || '',
+          lastName: editData.lastName || '',
+          birthdate: editData.birthdate || '',
+          phone: editData.phone || '',
+          emergencyContactName: editData.emergencyContactName || '',
+          emergencyContactPhone: editData.emergencyContactPhone || '',
+          otherInfo: editData.otherInfo || '',
+          lastEditedBy: currentUser?.name
+        };
         return updated;
       });
     } else {
       // Fallback to individual updates if setData not available
+      console.warn('setData not available, using individual updates');
       onUpdateMember(familyId, member.id, 'firstName', editData.firstName);
       onUpdateMember(familyId, member.id, 'lastName', editData.lastName);
       onUpdateMember(familyId, member.id, 'birthdate', editData.birthdate);
@@ -1640,11 +1669,6 @@ export default function App() {
                 placeholder="https://www.vrbo.com/..."
                 onSave={(val) => updateField('lodging.vrboLink', val)}
               />
-              {data.lodging.vrboLink && (
-                <div style={{ marginTop: 8 }}>
-                  <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#667eea', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>🔗 View VRBO Listing →</a>
-                </div>
-              )}
             </div>
 
             {/* Notes - Always editable */}
