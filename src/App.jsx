@@ -405,8 +405,46 @@ function EditableField({ label, value, type = 'text', placeholder, onSave, onDel
   );
 }
 
+// Helper function to calculate age based on trip dates
+function calculateAgeAtTrip(birthdate, tripStartDate) {
+  if (!birthdate || !tripStartDate) return null;
+  try {
+    const birth = new Date(birthdate);
+    const tripStart = new Date(tripStartDate);
+    let age = tripStart.getFullYear() - birth.getFullYear();
+    const monthDiff = tripStart.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && tripStart.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  } catch {
+    return null;
+  }
+}
+
+// Helper function to get trip start date from data
+function getTripStartDate(data) {
+  // Try to get from flight arrival date first
+  if (data?.flights?.arrival?.date) {
+    return data.flights.arrival.date;
+  }
+  // Fallback to parsing from tripInfo.dates (June 22–28, 2026)
+  if (data?.tripInfo?.dates) {
+    const match = data.tripInfo.dates.match(/(\w+)\s+(\d+)/);
+    if (match) {
+      const monthMap = { 'June': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12', 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05' };
+      const month = monthMap[match[1]] || '06';
+      const day = match[2].padStart(2, '0');
+      const year = data.tripInfo.dates.match(/202\d/)?.[0] || '2026';
+      return `${year}-${month}-${day}`;
+    }
+  }
+  // Default to June 22, 2026
+  return '2026-06-22';
+}
+
 // Family Member Accordion (simplified)
-function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser, onConfirmDelete, deletingMemberId, setData }) {
+function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser, onConfirmDelete, deletingMemberId, setData, tripData }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     firstName: member.firstName || '',
@@ -446,6 +484,13 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
   const displayName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unnamed Member';
   const displayPhone = member.phone || '';
   const isComplete = member.firstName && member.lastName && member.phone;
+  
+  // Calculate age at trip time
+  const tripStartDate = tripData ? getTripStartDate(tripData) : '2026-06-22';
+  const ageAtTrip = member.birthdate ? calculateAgeAtTrip(member.birthdate, tripStartDate) : null;
+  const isChild = ageAtTrip !== null && ageAtTrip < 21;
+  const isUnder3 = ageAtTrip !== null && ageAtTrip < 3;
+  const memberType = isChild ? 'Child' : 'Adult';
 
   const handleSave = (e) => {
     e?.stopPropagation();
@@ -523,7 +568,19 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
     <div style={{ background: '#fafafa', borderRadius: 8, marginBottom: 8, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', cursor: 'pointer' }} onClick={onToggle}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#4a4a6a', marginBottom: 2 }}>{displayName}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#4a4a6a' }}>{displayName}</div>
+            {ageAtTrip !== null && (isUnder3 || isChild) && (
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: isUnder3 ? '#fff7e6' : '#f0e6ff', color: isUnder3 ? '#d48806' : '#764ba2' }}>
+                {isUnder3 ? `Under 3 (Age ${ageAtTrip})` : `Under 21 (Age ${ageAtTrip})`}
+              </span>
+            )}
+            {ageAtTrip !== null && !isChild && (
+              <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: '#f0f0f0', color: '#666' }}>
+                Adult
+              </span>
+            )}
+          </div>
           {displayPhone ? (
             <div style={{ fontSize: 12, color: '#888', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>Phone:</span>
@@ -564,7 +621,23 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#888', marginBottom: 4, textTransform: 'uppercase' }}>Birthdate</label>
                   <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fafafa', border: '1px solid #f0f0f0', fontSize: 13, color: '#4a4a6a' }}>
-                    {member.birthdate ? new Date(member.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>}
+                    {member.birthdate ? (
+                      <div>
+                        <div>{new Date(member.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                        {ageAtTrip !== null && (isUnder3 || isChild) && (
+                          <div style={{ fontSize: 11, color: isUnder3 ? '#d48806' : '#764ba2', fontWeight: 600, marginTop: 4 }}>
+                            {isUnder3 ? `⚠️ Under 3 years old (Age ${ageAtTrip} at trip)` : `⚠️ Under 21 years old (Age ${ageAtTrip} at trip)`}
+                          </div>
+                        )}
+                        {ageAtTrip !== null && !isChild && (
+                          <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
+                            Age {ageAtTrip} at trip • {memberType}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ color: '#ccc', fontStyle: 'italic' }}>Not set</span>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -667,7 +740,7 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
 }
 
 // Family Accordion
-function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember, onRemoveMember, onRemoveFamily, currentUser, onConfirmDeleteMember, deletingMemberId, setData }) {
+function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember, onRemoveMember, onRemoveFamily, currentUser, onConfirmDeleteMember, deletingMemberId, setData, tripData }) {
   const [openMembers, setOpenMembers] = useState([]);
   const [deletingFamily, setDeletingFamily] = useState(false);
   
@@ -712,6 +785,7 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
               onConfirmDelete={onConfirmDeleteMember}
               deletingMemberId={deletingMemberId}
               setData={setData}
+              tripData={data}
             />
           ))}
           <button onClick={() => onAddMember(family.id)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 13, cursor: 'pointer', marginTop: 8 }}>+ Add Family Member</button>
@@ -1416,6 +1490,7 @@ export default function App() {
                 onConfirmDeleteMember={confirmDeleteMember}
                 deletingMemberId={deletingMember}
                 setData={setData}
+                tripData={data}
               />
             ))}
             {(!data.families || data.families.length === 0) && !showAddFamilyForm && (
