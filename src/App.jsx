@@ -220,8 +220,54 @@ function DraggableActivity({ activity, index, onUpdate, onRemove, onDragStart, o
   );
 }
 
+// Family Member Accordion (simplified)
+function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUpdateMember, onRemoveMember, currentUser }) {
+  const displayName = `${member.firstName || ''} ${member.lastName || ''}`.trim() || 'Unnamed Member';
+  const displayPhone = member.phone || 'No phone';
+  
+  return (
+    <div style={{ background: '#fafafa', borderRadius: 12, marginBottom: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', cursor: 'pointer' }} onClick={onToggle}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#4a4a6a', marginBottom: 4 }}>{displayName}</div>
+          <div style={{ fontSize: 13, color: '#888' }}>{displayPhone}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={(e) => { e.stopPropagation(); onRemoveMember(familyId, member.id); }} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 16, cursor: 'pointer' }}>×</button>
+          <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 12 }}>▼</span>
+        </div>
+      </div>
+      {isOpen && (
+        <div style={{ padding: '20px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>First Name</label><input type="text" value={member.firstName || ''} onChange={e => onUpdateMember(familyId, member.id, 'firstName', e.target.value)} placeholder="First name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
+            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Last Name</label><input type="text" value={member.lastName || ''} onChange={e => onUpdateMember(familyId, member.id, 'lastName', e.target.value)} placeholder="Last name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Birthdate</label><input type="date" value={member.birthdate || ''} onChange={e => onUpdateMember(familyId, member.id, 'birthdate', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
+            <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Phone Number</label><input type="tel" value={member.phone || ''} onChange={e => onUpdateMember(familyId, member.id, 'phone', e.target.value)} placeholder="(555) 123-4567" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <input type="text" value={member.emergencyContactName || ''} onChange={e => onUpdateMember(familyId, member.id, 'emergencyContactName', e.target.value)} placeholder="Name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+              <input type="tel" value={member.emergencyContactPhone || ''} onChange={e => onUpdateMember(familyId, member.id, 'emergencyContactPhone', e.target.value)} placeholder="Phone number" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
+            <textarea value={member.otherInfo || ''} onChange={e => onUpdateMember(familyId, member.id, 'otherInfo', e.target.value)} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, resize: 'vertical', minHeight: 80, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Family Accordion
 function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember, onRemoveMember, onRemoveFamily, currentUser }) {
+  const [openMembers, setOpenMembers] = useState([]);
+  
   return (
     <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderLeft: '4px solid #667eea', cursor: 'pointer' }} onClick={onToggle}>
@@ -239,31 +285,19 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
       {isOpen && (
         <div style={{ padding: '24px', borderTop: '1px solid #f0f0f0' }}>
           {family.members.map((member, idx) => (
-            <div key={member.id} style={{ background: '#fafafa', borderRadius: 12, padding: 20, marginBottom: 16, border: '1px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#764ba2' }}>Member #{idx + 1}</span>
-                {member.addedBy && <span style={{ fontSize: 11, color: '#888' }}>Added by {member.addedBy}</span>}
-                <button onClick={() => onRemoveMember(family.id, member.id)} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 16, cursor: 'pointer' }}>×</button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>First Name</label><input type="text" value={member.firstName || ''} onChange={e => onUpdateMember(family.id, member.id, 'firstName', e.target.value)} placeholder="First name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
-                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Last Name</label><input type="text" value={member.lastName || ''} onChange={e => onUpdateMember(family.id, member.id, 'lastName', e.target.value)} placeholder="Last name" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Birthdate</label><input type="date" value={member.birthdate || ''} onChange={e => onUpdateMember(family.id, member.id, 'birthdate', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
-                <div><label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Phone Number</label><input type="tel" value={member.phone || ''} onChange={e => onUpdateMember(family.id, member.id, 'phone', e.target.value)} placeholder="(555) 123-4567" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} /></div>
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Emergency Contact (Not on trip)</label>
-                <input type="text" value={member.emergencyContact || ''} onChange={e => onUpdateMember(family.id, member.id, 'emergencyContact', e.target.value)} placeholder="Name & phone of someone not traveling" style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Other Important Info</label>
-                <textarea value={member.otherInfo || ''} onChange={e => onUpdateMember(family.id, member.id, 'otherInfo', e.target.value)} placeholder="Dietary restrictions, medical info, allergies, special needs..." style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid #e8e0f0', fontSize: 14, resize: 'vertical', minHeight: 80, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-              </div>
-            </div>
+            <FamilyMemberAccordion
+              key={member.id}
+              member={member}
+              index={idx}
+              familyId={family.id}
+              isOpen={openMembers.includes(member.id)}
+              onToggle={() => setOpenMembers(p => p.includes(member.id) ? p.filter(id => id !== member.id) : [...p, member.id])}
+              onUpdateMember={onUpdateMember}
+              onRemoveMember={onRemoveMember}
+              currentUser={currentUser}
+            />
           ))}
-          <button onClick={() => onAddMember(family.id)} style={{ width: '100%', padding: 14, borderRadius: 10, border: '2px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 14, cursor: 'pointer' }}>+ Add Family Member</button>
+          <button onClick={() => onAddMember(family.id)} style={{ width: '100%', padding: 14, borderRadius: 10, border: '2px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 14, cursor: 'pointer', marginTop: 12 }}>+ Add Family Member</button>
         </div>
       )}
     </div>
@@ -486,7 +520,8 @@ export default function App() {
           lastName: lastName,
           phone: contact.phone || '',
           birthdate: '',
-          emergencyContact: '',
+          emergencyContactName: '',
+          emergencyContactPhone: '',
           otherInfo: (contact.notes || '') + (contact.email ? ` Email: ${contact.email}` : '') + (contact.room ? ` Room: ${contact.room}` : ''),
           addedBy: contact.addedBy
         });
@@ -532,7 +567,7 @@ export default function App() {
       ...p,
       families: (p.families || []).map(f => 
         f.id === familyId 
-          ? { ...f, members: [...f.members, { id: Date.now(), firstName: '', lastName: f.lastName, phone: '', birthdate: '', emergencyContact: '', otherInfo: '', addedBy: currentUser?.name }] }
+          ? { ...f, members: [...f.members, { id: Date.now(), firstName: '', lastName: f.lastName, phone: '', birthdate: '', emergencyContactName: '', emergencyContactPhone: '', otherInfo: '', addedBy: currentUser?.name }] }
           : f
       )
     }));
