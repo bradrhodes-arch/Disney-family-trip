@@ -1087,10 +1087,22 @@ export default function App() {
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #52c41a, #73d13d)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🔑</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 4 }}>Check-in</div>
-                  {data.lodging.checkIn ? (
-                    <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.checkIn}</div>
+                  {data.lodging.checkIn && !editingLodging.checkIn ? (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.checkIn}</div>
+                      <button onClick={() => setEditingLodging({...editingLodging, checkIn: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 12, padding: '4px 8px' }}>Edit</button>
+                    </div>
                   ) : (
-                    <input type="text" value={data.lodging.checkIn || ''} onChange={e => updateField('lodging.checkIn', e.target.value)} placeholder="4:00 PM" style={{ ...inputStyle, margin: 0, padding: '8px 12px', fontSize: 18, fontWeight: 600 }} />
+                    <input 
+                      type="text" 
+                      value={data.lodging.checkIn || ''} 
+                      onChange={e => updateField('lodging.checkIn', e.target.value)} 
+                      onBlur={() => setEditingLodging({...editingLodging, checkIn: false})}
+                      onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, checkIn: false})}
+                      placeholder="4:00 PM" 
+                      style={{ ...inputStyle, margin: 0, padding: '8px 12px', fontSize: 18, fontWeight: 600 }} 
+                      autoFocus={editingLodging.checkIn}
+                    />
                   )}
                 </div>
               </div>
@@ -1098,50 +1110,92 @@ export default function App() {
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #f5576c, #ff7875)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🚪</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 4 }}>Check-out</div>
-                  {data.lodging.checkOut ? (
-                    <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.checkOut}</div>
+                  {data.lodging.checkOut && !editingLodging.checkOut ? (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: 18, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.checkOut}</div>
+                      <button onClick={() => setEditingLodging({...editingLodging, checkOut: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 12, padding: '4px 8px' }}>Edit</button>
+                    </div>
                   ) : (
-                    <input type="text" value={data.lodging.checkOut || ''} onChange={e => updateField('lodging.checkOut', e.target.value)} placeholder="10:00 AM" style={{ ...inputStyle, margin: 0, padding: '8px 12px', fontSize: 18, fontWeight: 600 }} />
+                    <input 
+                      type="text" 
+                      value={data.lodging.checkOut || ''} 
+                      onChange={e => updateField('lodging.checkOut', e.target.value)} 
+                      onBlur={() => setEditingLodging({...editingLodging, checkOut: false})}
+                      onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, checkOut: false})}
+                      placeholder="10:00 AM" 
+                      style={{ ...inputStyle, margin: 0, padding: '8px 12px', fontSize: 18, fontWeight: 600 }} 
+                      autoFocus={editingLodging.checkOut}
+                    />
                   )}
                 </div>
               </div>
             </div>
 
             {/* Property Information - Display when filled, input when empty */}
-            {data.lodging.name && (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Property Name</div>
-                <div style={{ fontSize: 20, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.name}</div>
+            {data.lodging.name && !editingLodging.name ? (
+              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Property Name</div>
+                  <div style={{ fontSize: 20, fontWeight: 600, color: '#4a4a6a' }}>{data.lodging.name}</div>
+                </div>
+                <button onClick={() => setEditingLodging({...editingLodging, name: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 14, padding: '4px 8px' }}>Edit</button>
               </div>
-            )}
-            {!data.lodging.name && (
+            ) : editingLodging.name ? (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Property Name</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="text" value={data.lodging.name || ''} onChange={e => updateField('lodging.name', e.target.value)} onBlur={() => setEditingLodging({...editingLodging, name: false})} onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, name: false})} style={{ ...inputStyle, flex: 1 }} autoFocus />
+                  <button onClick={() => setEditingLodging({...editingLodging, name: false})} style={btnSecondary}>Done</button>
+                </div>
+              </div>
+            ) : (
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Property Name</label>
                 <input type="text" value={data.lodging.name || ''} onChange={e => updateField('lodging.name', e.target.value, 'updated property name')} placeholder="e.g., Magical Villa" style={inputStyle} />
               </div>
             )}
 
-            {data.lodging.address && (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Address</div>
-                <div style={{ fontSize: 16, color: '#4a4a6a', marginBottom: 8 }}>{data.lodging.address}</div>
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.lodging.address)}`} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '8px 16px' }}>📍 Open Maps</a>
+            {data.lodging.address && !editingLodging.address ? (
+              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Address</div>
+                  <div style={{ fontSize: 16, color: '#4a4a6a', marginBottom: 8 }}>{data.lodging.address}</div>
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.lodging.address)}`} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '8px 16px' }}>📍 Open Maps</a>
+                </div>
+                <button onClick={() => setEditingLodging({...editingLodging, address: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 14, padding: '4px 8px' }}>Edit</button>
               </div>
-            )}
-            {!data.lodging.address && (
+            ) : editingLodging.address ? (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Address</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="text" value={data.lodging.address || ''} onChange={e => updateField('lodging.address', e.target.value)} onBlur={() => setEditingLodging({...editingLodging, address: false})} onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, address: false})} style={{ ...inputStyle, flex: 1 }} autoFocus />
+                  <button onClick={() => setEditingLodging({...editingLodging, address: false})} style={btnSecondary}>Done</button>
+                </div>
+              </div>
+            ) : (
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>Address</label>
                 <input type="text" value={data.lodging.address || ''} onChange={e => updateField('lodging.address', e.target.value, 'updated address')} placeholder="123 Magic Way, Kissimmee, FL" style={inputStyle} />
               </div>
             )}
 
-            {data.lodging.vrboLink && (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>VRBO Listing</div>
-                <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#667eea', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>🔗 View Listing →</a>
+            {data.lodging.vrboLink && !editingLodging.vrboLink ? (
+              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>VRBO Listing</div>
+                  <a href={data.lodging.vrboLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: '#667eea', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>🔗 View Listing →</a>
+                </div>
+                <button onClick={() => setEditingLodging({...editingLodging, vrboLink: true})} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 14, padding: '4px 8px' }}>Edit</button>
               </div>
-            )}
-            {!data.lodging.vrboLink && (
+            ) : editingLodging.vrboLink ? (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>VRBO Link</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="url" value={data.lodging.vrboLink || ''} onChange={e => updateField('lodging.vrboLink', e.target.value)} onBlur={() => setEditingLodging({...editingLodging, vrboLink: false})} onKeyDown={e => e.key === 'Enter' && setEditingLodging({...editingLodging, vrboLink: false})} style={{ ...inputStyle, flex: 1 }} autoFocus />
+                  <button onClick={() => setEditingLodging({...editingLodging, vrboLink: false})} style={btnSecondary}>Done</button>
+                </div>
+              </div>
+            ) : (
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#888', marginBottom: 6, textTransform: 'uppercase' }}>VRBO Link</label>
                 <input type="url" value={data.lodging.vrboLink || ''} onChange={e => updateField('lodging.vrboLink', e.target.value, 'updated VRBO link')} placeholder="https://www.vrbo.com/..." style={inputStyle} />
