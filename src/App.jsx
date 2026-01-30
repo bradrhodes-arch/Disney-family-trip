@@ -1041,28 +1041,17 @@ export default function App() {
   const addPoll = (poll) => { setData(p => ({ ...p, polls: [...p.polls, { id: Date.now(), question: poll.question, options: poll.options.map(opt => ({ text: opt, votes: 0, voters: [] })), addedBy: currentUser?.name, createdAt: new Date().toISOString() }] })); addHistory(`created poll: ${poll.question}`); };
   const votePoll = (pollId, optionIndex) => { setData(p => ({ ...p, polls: p.polls.map(poll => poll.id === pollId ? { ...poll, options: poll.options.map((opt, idx) => idx === optionIndex && !opt.voters.includes(currentUser?.name) ? { ...opt, votes: opt.votes + 1, voters: [...opt.voters, currentUser?.name] } : opt) } : poll) })); };
   const removePoll = (pollId) => { setData(p => ({ ...p, polls: p.polls.filter(poll => poll.id !== pollId) })); addHistory('removed poll'); };
-  const updateFieldSaveTimeoutRef = useRef(null);
   const updateField = (path, val, desc) => { 
-    let updatedData = null;
     setData(p => { 
       const d = JSON.parse(JSON.stringify(p)); 
       const k = path.split('.'); 
       let c = d; 
       for (let i = 0; i < k.length - 1; i++) c = c[k[i]]; 
       c[k[k.length - 1]] = val; 
-      updatedData = d;
       return d; 
     }); 
     if (desc) addHistory(desc);
-    // Debounce save with status - only show status after user stops typing
-    if (updateFieldSaveTimeoutRef.current) {
-      clearTimeout(updateFieldSaveTimeoutRef.current);
-    }
-    updateFieldSaveTimeoutRef.current = setTimeout(() => {
-      if (updatedData && !loading && currentUser) {
-        save(updatedData, true);
-      }
-    }, 800);
+    // Auto-save will handle saving silently - no status flashing
   };
 
 
