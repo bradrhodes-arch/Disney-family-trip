@@ -485,8 +485,16 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
   const displayPhone = member.phone || '';
   const isComplete = member.firstName && member.lastName && member.phone;
   
-  // Calculate age at trip time
-  const tripStartDate = tripData ? getTripStartDate(tripData) : '2026-06-22';
+  // Calculate age at trip time - safely handle missing tripData
+  let tripStartDate = '2026-06-22';
+  try {
+    if (tripData) {
+      tripStartDate = getTripStartDate(tripData);
+    }
+  } catch (e) {
+    console.error('Error getting trip start date:', e);
+  }
+  
   const ageAtTrip = member.birthdate ? calculateAgeAtTrip(member.birthdate, tripStartDate) : null;
   const isChild = ageAtTrip !== null && ageAtTrip < 21;
   const isUnder3 = ageAtTrip !== null && ageAtTrip < 3;
