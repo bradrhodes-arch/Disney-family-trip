@@ -773,6 +773,10 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
   const [openMembers, setOpenMembers] = useState([]);
   const [deletingFamily, setDeletingFamily] = useState(false);
   
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/4dbeb082-0838-4e0e-a1a3-f43286e1b2b8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:772',message:'FamilyAccordion render',data:{hasTripData:!!tripData,isOpen,familyId:family?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
   return (
     <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderLeft: '3px solid #667eea', cursor: 'pointer' }} onClick={onToggle}>
@@ -800,7 +804,11 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
       )}
       {isOpen && (
         <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
-          {family.members.map((member, idx) => (
+          {family.members.map((member, idx) => {
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/4dbeb082-0838-4e0e-a1a3-f43286e1b2b8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:803',message:'Rendering FamilyMemberAccordion',data:{hasTripData:!!tripData,memberId:member?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            return (
             <FamilyMemberAccordion
               key={member.id}
               member={member}
@@ -814,9 +822,9 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
               onConfirmDelete={onConfirmDeleteMember}
               deletingMemberId={deletingMemberId}
               setData={setData}
-              tripData={data}
+              tripData={tripData}
             />
-          ))}
+          )})}
           <button onClick={() => onAddMember(family.id)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 13, cursor: 'pointer', marginTop: 8 }}>+ Add Family Member</button>
         </div>
       )}
