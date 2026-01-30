@@ -408,17 +408,26 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
 
   // Only sync editData when member changes AND we're not currently editing
   // This prevents overwriting user input while they're typing
+  // Also check if the data actually changed to prevent unnecessary resets
+  const prevMemberRef = useRef(null);
   useEffect(() => {
     if (!isEditing) {
-      setEditData({
-        firstName: member.firstName || '',
-        lastName: member.lastName || '',
-        birthdate: member.birthdate || '',
-        phone: member.phone || '',
-        emergencyContactName: member.emergencyContactName || '',
-        emergencyContactPhone: member.emergencyContactPhone || '',
-        otherInfo: member.otherInfo || ''
-      });
+      const memberStr = JSON.stringify(member);
+      const prevMemberStr = prevMemberRef.current ? JSON.stringify(prevMemberRef.current) : null;
+      
+      // Only update if member actually changed
+      if (memberStr !== prevMemberStr) {
+        setEditData({
+          firstName: member.firstName || '',
+          lastName: member.lastName || '',
+          birthdate: member.birthdate || '',
+          phone: member.phone || '',
+          emergencyContactName: member.emergencyContactName || '',
+          emergencyContactPhone: member.emergencyContactPhone || '',
+          otherInfo: member.otherInfo || ''
+        });
+        prevMemberRef.current = member;
+      }
     }
   }, [member, isEditing]);
 
@@ -827,18 +836,36 @@ export default function App() {
     load();
 
     // Real-time sync - updates when others make changes
+    // Only update if the data is actually different to prevent overwriting local changes
+    let lastUpdateTime = Date.now();
     const channel = supabase
       .channel('trip-changes')
       .on('postgres_changes', 
         { event: 'UPDATE', schema: 'public', table: 'trip_data' },
         (payload) => {
           if (payload.new.id === STORAGE_KEY) {
+            const now = Date.now();
+            // Debounce: ignore updates that happen within 500ms (likely from our own save)
+            if (now - lastUpdateTime < 500) {
+              return;
+            }
+            lastUpdateTime = now;
+            
             const updatedData = payload.new.data;
             updatedData.days = updatedData.days.map(d => ({ 
               ...d, 
               activities: d.activities.map(a => typeof a === 'string' ? { text: a, editedBy: null } : a) 
             }));
-            setData(updatedData);
+            
+            // Only update if data is actually different (prevent unnecessary re-renders)
+            setData(currentData => {
+              const currentStr = JSON.stringify(currentData);
+              const newStr = JSON.stringify(updatedData);
+              if (currentStr !== newStr) {
+                return updatedData;
+              }
+              return currentData;
+            });
           }
         }
       )
@@ -884,8 +911,10 @@ export default function App() {
   // This auto-save runs silently (no status indicator) to prevent flashing
   const saveTimeoutRef = useRef(null);
   const lastSavedDataRef = useRef(null);
+  const isSavingRef = useRef(false);
+  
   useEffect(() => {
-    if (data && !loading && currentUser) {
+    if (data && !loading && currentUser && !isSavingRef.current) {
       // Only auto-save if data actually changed (compare stringified versions)
       const dataStr = JSON.stringify(data);
       if (dataStr !== lastSavedDataRef.current) {
@@ -894,9 +923,14 @@ export default function App() {
           clearTimeout(saveTimeoutRef.current);
         }
         // Set new timeout - don't show saving status for auto-saves
-        saveTimeoutRef.current = setTimeout(() => {
-          save(data, false); // false = don't show status
+        saveTimeoutRef.current = setTimeout(async () => {
+          isSavingRef.current = true;
+          await save(data, false); // false = don't show status
           lastSavedDataRef.current = dataStr;
+          // Wait a bit before allowing next save to prevent race conditions
+          setTimeout(() => {
+            isSavingRef.current = false;
+          }, 1000);
         }, 1500);
         return () => {
           if (saveTimeoutRef.current) {
