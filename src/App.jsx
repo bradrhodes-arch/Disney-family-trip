@@ -424,21 +424,28 @@ function calculateAgeAtTrip(birthdate, tripStartDate) {
 
 // Helper function to get trip start date from data
 function getTripStartDate(data) {
-  // Try to get from flight arrival date first
-  if (data?.flights?.arrival?.date) {
-    return data.flights.arrival.date;
-  }
-  // Fallback to parsing from tripInfo.dates (June 22–28, 2026)
-  if (data?.tripInfo?.dates) {
-    const match = data.tripInfo.dates.match(/(\w+)\s+(\d+)/);
-    if (match) {
-      const monthMap = { 'June': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12', 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05' };
-      const month = monthMap[match[1]] || '06';
-      const day = match[2].padStart(2, '0');
-      const year = data.tripInfo.dates.match(/202\d/)?.[0] || '2026';
-      return `${year}-${month}-${day}`;
+  if (!data) return '2026-06-22';
+  
+  try {
+    // Try to get from flight arrival date first
+    if (data?.flights?.arrival?.date) {
+      return data.flights.arrival.date;
     }
+    // Fallback to parsing from tripInfo.dates (June 22–28, 2026)
+    if (data?.tripInfo?.dates) {
+      const match = data.tripInfo.dates.match(/(\w+)\s+(\d+)/);
+      if (match) {
+        const monthMap = { 'June': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12', 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05' };
+        const month = monthMap[match[1]] || '06';
+        const day = match[2].padStart(2, '0');
+        const year = data.tripInfo.dates.match(/202\d/)?.[0] || '2026';
+        return `${year}-${month}-${day}`;
+      }
+    }
+  } catch (e) {
+    console.error('Error parsing trip start date:', e);
   }
+  
   // Default to June 22, 2026
   return '2026-06-22';
 }
