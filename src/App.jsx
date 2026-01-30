@@ -1952,6 +1952,10 @@ export default function App() {
 function PlanningTab({ data, currentUser, addRec, voteRec, addBudgetTip, removeBudgetTip, addAnn, cardStyle }) {
   const [planningSection, setPlanningSection] = useState('recommendations'); // 'recommendations' or 'budget'
   
+  if (!data) {
+    return <div style={{ textAlign: 'center', padding: '48px 24px', color: '#888' }}>Loading...</div>;
+  }
+  
   return (
     <div>
       <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>Planning</h2>
@@ -2002,11 +2006,11 @@ function PlanningTab({ data, currentUser, addRec, voteRec, addBudgetTip, removeB
           <p style={{ color: '#888', marginBottom: 20, fontSize: 14 }}>Share your Disney wisdom! Vote on favorites.</p>
           <RecForm onAdd={addRec} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {data.recommendations.sort((a, b) => b.votes - a.votes).map(r => <div key={r.id} style={{ ...cardStyle, display: 'flex', gap: 16 }}>
+            {(data.recommendations || []).sort((a, b) => b.votes - a.votes).map(r => <div key={r.id} style={{ ...cardStyle, display: 'flex', gap: 16 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}><button onClick={() => voteRec(r.id)} disabled={(r.voters || []).includes(currentUser?.name)} style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #ffe58f', background: '#fffbe6', fontSize: 20, cursor: 'pointer', opacity: (r.voters || []).includes(currentUser?.name) ? 0.5 : 1 }}>⭐</button><span style={{ fontWeight: 700, color: '#d48806' }}>{r.votes}</span></div>
               <div style={{ flex: 1 }}><div style={{ fontSize: 11, textTransform: 'uppercase', color: '#888', marginBottom: 4 }}>{r.category}</div><div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{r.title}</div>{r.description && <div style={{ fontSize: 14, color: '#666', lineHeight: 1.5 }}>{r.description}</div>}<div style={{ fontSize: 12, color: '#aaa', marginTop: 8 }}>Added by {r.addedBy}</div></div>
             </div>)}
-            {data.recommendations.length === 0 && <div style={{ textAlign: 'center', padding: '48px 24px', color: '#888' }}><p>No recommendations yet!</p></div>}
+            {(!data.recommendations || data.recommendations.length === 0) && <div style={{ textAlign: 'center', padding: '48px 24px', color: '#888' }}><p>No recommendations yet!</p></div>}
           </div>
         </div>
       )}
@@ -2041,7 +2045,7 @@ function PlanningTab({ data, currentUser, addRec, voteRec, addBudgetTip, removeB
       <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid #f0e6ff' }}>
         <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Announcements</h3>
         <AnnForm onAdd={addAnn} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{data.announcements.map(a => <div key={a.id} style={{ background: '#f8f4ff', borderRadius: 12, padding: 16 }}><div style={{ fontSize: 14, marginBottom: 8 }}>{a.text}</div><div style={{ fontSize: 12, color: '#888' }}>{a.author} • {new Date(a.time).toLocaleDateString()}</div></div>)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{(data.announcements || []).map(a => <div key={a.id} style={{ background: '#f8f4ff', borderRadius: 12, padding: 16 }}><div style={{ fontSize: 14, marginBottom: 8 }}>{a.text}</div><div style={{ fontSize: 12, color: '#888' }}>{a.author} • {new Date(a.time).toLocaleDateString()}</div></div>)}</div>
       </div>
     </div>
   );
