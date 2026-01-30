@@ -703,7 +703,6 @@ export default function App() {
     setFetchingVRBO(true);
     try {
       // Use Microlink API to extract metadata from VRBO page
-      // This is a free service that extracts metadata from URLs
       const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(vrboLink)}`;
       
       const response = await fetch(microlinkUrl);
@@ -712,37 +711,82 @@ export default function App() {
       if (result.status === 'success' && result.data) {
         const metadata = result.data;
         
-        // Extract information from metadata
-        const title = metadata.title || metadata['og:title'] || '';
+        // Extract title - clean it up better
+        let title = metadata.title || metadata['og:title'] || '';
+        // Remove VRBO branding and clean up
+        title = title
+          .replace(/ - VRBO$| \| VRBO$| on VRBO$/i, '')
+          .replace(/^VRBO - /i, '')
+          .replace(/\s*-\s*Expedia.*$/i, '')
+          .trim();
+        
+        // Extract description
         const description = metadata.description || metadata['og:description'] || '';
         
-        // Try to extract address from title or description
+        // Try multiple methods to extract address
         let address = '';
-        if (description) {
-          // Look for address patterns in description
-          const addressMatch = description.match(/(\d+[\s\w]+,?\s*[A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5})/);
-          if (addressMatch) {
-            address = addressMatch[1];
+        
+        // Method 1: Look for address in description
+        const addressPatterns = [
+          /(\d+[\s\w]+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Boulevard|Blvd|Way|Circle|Ct|Court|Place|Pl)[\s,]+[A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5})/i,
+          /([A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5})/,
+          /(\d+[\s\w]+,\s*[A-Z][a-z]+,\s*[A-Z]{2})/i
+        ];
+        
+        for (const pattern of addressPatterns) {
+          const match = description.match(pattern) || title.match(pattern);
+          if (match) {
+            address = match[1].trim();
+            break;
           }
         }
         
-        // Update lodging fields
-        if (title && !data.lodging.name) {
-          updateField('lodging.name', title.replace(/ - VRBO$| \| VRBO$/i, '').trim());
+        // Method 2: Look for location keywords (Kissimmee, Orlando, etc.)
+        if (!address && description) {
+          const locationKeywords = ['Kissimmee', 'Orlando', 'Lake Buena Vista', 'Celebration'];
+          for (const keyword of locationKeywords) {
+            if (description.includes(keyword)) {
+              // Try to find nearby address context
+              const contextMatch = description.match(new RegExp(`([\\d\\w\\s]+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Way)[\\s,]+.*?${keyword}[^,]*?)`, 'i'));
+              if (contextMatch) {
+                address = contextMatch[1].trim();
+                break;
+              }
+            }
+          }
         }
         
-        if (address && !data.lodging.address) {
+        // Update lodging fields only if we have good data
+        if (title && title.length > 3 && title !== 'Bot or Nat') {
+          updateField('lodging.name', title);
+        }
+        
+        if (address && address.length > 5) {
           updateField('lodging.address', address);
         }
         
-        // Add description to notes if helpful
-        if (description && description.length > 50 && !data.lodging.notes) {
-          updateField('lodging.notes', description.substring(0, 200));
+        // Add description to notes if it's substantial and helpful
+        if (description && description.length > 100 && !data.lodging.notes) {
+          // Clean up description - remove common VRBO boilerplate
+          let cleanDesc = description
+            .replace(/Book.*VRBO.*now/i, '')
+            .replace(/View.*photos/i, '')
+            .substring(0, 300)
+            .trim();
+          if (cleanDesc.length > 50) {
+            updateField('lodging.notes', cleanDesc);
+          }
         }
         
         addHistory('fetched VRBO listing details');
+        
+        // Show success message
+        if (title && title !== 'Bot or Nat') {
+          alert(`Successfully fetched: ${title}${address ? `\nAddress: ${address}` : '\n(Address not found - please enter manually)'}`);
+        } else {
+          alert('Fetched some data, but property name may need manual correction. Please review and update.');
+        }
       } else {
-        // Fallback: Try to extract basic info from URL or use manual entry
         alert('Could not automatically fetch details. Please enter them manually.');
       }
     } catch (error) {
