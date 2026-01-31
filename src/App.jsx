@@ -127,6 +127,12 @@ PRO TIP: Ride Flight of Passage right before park closes for shorter waits!`,
     { id: 9, text: "Download My Disney Experience app and set up Genie+ strategies", category: "📱 Apps & Planning", addedBy: "System" },
     { id: 10, text: "Eat at quick service for lunch, table service for dinner only", category: "🍽️ Food & Dining", addedBy: "System" }
   ],
+  parkWishlist: {
+    'magic-kingdom': { id: 'magic-kingdom', name: 'Magic Kingdom', icon: '🏰', items: [] },
+    'epcot': { id: 'epcot', name: 'EPCOT', icon: '🌍', items: [] },
+    'hollywood-studios': { id: 'hollywood-studios', name: 'Hollywood Studios', icon: '🎬', items: [] },
+    'animal-kingdom': { id: 'animal-kingdom', name: 'Animal Kingdom', icon: '🌳', items: [] }
+  },
   polls: [],
   announcements: [],
   editHistory: []
@@ -768,14 +774,73 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
   );
 }
 
+// Park Planning Accordion
+function ParkPlanningAccordion({ park, isOpen, onToggle, items, onAddItem, onRemoveItem, currentUser }) {
+  const [newItemText, setNewItemText] = useState('');
+  
+  const handleAdd = (e) => {
+    e?.stopPropagation();
+    if (newItemText.trim()) {
+      onAddItem(park.id, newItemText);
+      setNewItemText('');
+    }
+  };
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderLeft: '3px solid #667eea', cursor: 'pointer' }} onClick={onToggle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 24 }}>{park.icon}</span>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#4a4a6a' }}>{park.name}</div>
+            <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>{items.length} {items.length === 1 ? 'item' : 'items'}</div>
+          </div>
+        </div>
+        <span style={{ color: '#888', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 10 }}>▼</span>
+      </div>
+      {isOpen && (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }} onClick={(e) => e.stopPropagation()}>
+            <input
+              type="text"
+              value={newItemText}
+              onChange={(e) => setNewItemText(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAdd(e)}
+              placeholder="Add ride, show, restaurant, or activity..."
+              style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #e8e0f0', fontSize: 13, outline: 'none' }}
+            />
+            <button onClick={handleAdd} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Add</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {items.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: '#aaa', fontSize: 13 }}>No items yet. Add what you want to see!</div>
+            ) : (
+              items.map(item => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, color: '#4a4a6a' }}>{item.text}</div>
+                    {item.addedBy && <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>Added by {item.addedBy}</div>}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRemoveItem(park.id, item.id); }}
+                    style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Family Accordion
 function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember, onRemoveMember, onRemoveFamily, currentUser, onConfirmDeleteMember, deletingMemberId, setData, tripData }) {
   const [openMembers, setOpenMembers] = useState([]);
   const [deletingFamily, setDeletingFamily] = useState(false);
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/4dbeb082-0838-4e0e-a1a3-f43286e1b2b8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:772',message:'FamilyAccordion render',data:{hasTripData:!!tripData,isOpen,familyId:family?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   
   return (
     <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', marginBottom: 12 }}>
@@ -804,11 +869,7 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
       )}
       {isOpen && (
         <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
-          {family.members.map((member, idx) => {
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/4dbeb082-0838-4e0e-a1a3-f43286e1b2b8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:803',message:'Rendering FamilyMemberAccordion',data:{hasTripData:!!tripData,memberId:member?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-            return (
+          {family.members.map((member, idx) => (
             <FamilyMemberAccordion
               key={member.id}
               member={member}
@@ -824,7 +885,7 @@ function FamilyAccordion({ family, isOpen, onToggle, onUpdateMember, onAddMember
               setData={setData}
               tripData={tripData}
             />
-          )})}
+          ))}
           <button onClick={() => onAddMember(family.id)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px dashed #e8e0f0', background: '#fafafa', color: '#888', fontSize: 13, cursor: 'pointer', marginTop: 8 }}>+ Add Family Member</button>
         </div>
       )}
@@ -915,6 +976,8 @@ export default function App() {
   const [trackingFlights, setTrackingFlights] = useState({ arrival: false, departure: false });
   const [deletingMember, setDeletingMember] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', or null
+  const [itineraryView, setItineraryView] = useState('planning'); // 'planning' or 'generated'
+  const [openParks, setOpenParks] = useState([]);
   const btnRef = useRef(null);
 
   useEffect(() => {
@@ -959,6 +1022,18 @@ export default function App() {
           // Ensure polls array exists
           if (!p.polls) {
             p.polls = [];
+          }
+          
+          // Ensure parkWishlist exists
+          if (!p.parkWishlist) {
+            p.parkWishlist = defaultData.parkWishlist;
+          } else {
+            // Ensure all parks exist
+            Object.keys(defaultData.parkWishlist).forEach(parkId => {
+              if (!p.parkWishlist[parkId]) {
+                p.parkWishlist[parkId] = defaultData.parkWishlist[parkId];
+              }
+            });
           }
           
           setData(p);
@@ -1150,6 +1225,36 @@ export default function App() {
     }));
     const dayLabel = data?.days?.find(d => d.id === dayId)?.label || 'day';
     addHistory(`reordered activities in ${dayLabel}`);
+  };
+
+  // Park Wishlist functions
+  const addParkItem = (parkId, text) => {
+    if (!data || !text.trim()) return;
+    setData(p => {
+      const updated = JSON.parse(JSON.stringify(p));
+      if (!updated.parkWishlist[parkId]) {
+        updated.parkWishlist[parkId] = { id: parkId, name: '', icon: '', items: [] };
+      }
+      updated.parkWishlist[parkId].items.push({
+        id: `item-${Date.now()}-${Math.random()}`,
+        text: text.trim(),
+        addedBy: currentUser?.name || 'Unknown'
+      });
+      return updated;
+    });
+    addHistory(`added item to ${data?.parkWishlist?.[parkId]?.name || parkId}`);
+  };
+
+  const removeParkItem = (parkId, itemId) => {
+    if (!data) return;
+    setData(p => {
+      const updated = JSON.parse(JSON.stringify(p));
+      if (updated.parkWishlist[parkId]) {
+        updated.parkWishlist[parkId].items = updated.parkWishlist[parkId].items.filter(item => item.id !== itemId);
+      }
+      return updated;
+    });
+    addHistory(`removed item from ${data?.parkWishlist?.[parkId]?.name || parkId}`);
   };
 
   // Migrate old contacts structure to families if needed
@@ -1469,15 +1574,67 @@ export default function App() {
       <main style={{ padding: 24, maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 10 }}>
         {activeTab === 'itinerary' && <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 12 }}>
-            <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Trip Itinerary</h2>
-            <button onClick={() => setOpenDays(openDays.length === 7 ? [] : [1,2,3,4,5,6,7])} style={btnSecondary}>{openDays.length === 7 ? 'Collapse All' : 'Expand All'}</button>
+            <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Trip Planning</h2>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button 
+                onClick={() => setItineraryView('planning')} 
+                style={{ 
+                  ...btnSecondary, 
+                  background: itineraryView === 'planning' ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#fff',
+                  color: itineraryView === 'planning' ? '#fff' : '#666',
+                  border: itineraryView === 'planning' ? 'none' : '1px solid #e8e0f0'
+                }}
+              >
+                Park Planning
+              </button>
+              <button 
+                onClick={() => setItineraryView('generated')} 
+                style={{ 
+                  ...btnSecondary, 
+                  background: itineraryView === 'generated' ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#fff',
+                  color: itineraryView === 'generated' ? '#fff' : '#666',
+                  border: itineraryView === 'generated' ? 'none' : '1px solid #e8e0f0'
+                }}
+              >
+                Generated Itinerary
+              </button>
+            </div>
           </div>
-          <p style={{ color: '#888', marginBottom: 24 }}>Click to expand • Drag to reorder • Your name is tracked!</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {data.days.map(d => (
-              <AccordionDay key={d.id} day={d} isOpen={openDays.includes(d.id)} onToggle={() => setOpenDays(p => p.includes(d.id) ? p.filter(x => x !== d.id) : [...p, d.id])} onUpdate={(i, v) => updateDay(d.id, i, v)} onAdd={() => addActivity(d.id)} onRemove={(i) => removeActivity(d.id, i)} onReorder={(from, to) => reorderActivities(d.id, from, to)} currentUser={currentUser} />
-            ))}
-          </div>
+          
+          {itineraryView === 'planning' ? (
+            <div>
+              <p style={{ color: '#888', marginBottom: 24 }}>Plan what you want to see at each park before generating your itinerary days!</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {data?.parkWishlist && Object.values(data.parkWishlist).map(park => (
+                  <ParkPlanningAccordion
+                    key={park.id}
+                    park={park}
+                    isOpen={openParks.includes(park.id)}
+                    onToggle={() => setOpenParks(p => p.includes(park.id) ? p.filter(id => id !== park.id) : [...p, park.id])}
+                    items={park.items || []}
+                    onAddItem={addParkItem}
+                    onRemoveItem={removeParkItem}
+                    currentUser={currentUser}
+                  />
+                ))}
+              </div>
+              {data?.parkWishlist && Object.values(data.parkWishlist).some(p => (p.items || []).length > 0) && (
+                <div style={{ marginTop: 24, padding: 20, background: '#f8f4ff', borderRadius: 12, textAlign: 'center' }}>
+                  <p style={{ color: '#764ba2', fontSize: 14, marginBottom: 12 }}>✨ Once you've added items to parks, you can view the generated itinerary!</p>
+                  <button onClick={() => setItineraryView('generated')} style={btnPrimary}>View Generated Itinerary</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p style={{ color: '#888', marginBottom: 24 }}>Click to expand • Drag to reorder • Your name is tracked!</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {data.days.map(d => (
+                  <AccordionDay key={d.id} day={d} isOpen={openDays.includes(d.id)} onToggle={() => setOpenDays(p => p.includes(d.id) ? p.filter(x => x !== d.id) : [...p, d.id])} onUpdate={(i, v) => updateDay(d.id, i, v)} onAdd={() => addActivity(d.id)} onRemove={(i) => removeActivity(d.id, i)} onReorder={(from, to) => reorderActivities(d.id, from, to)} currentUser={currentUser} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>}
 
         {activeTab === 'contacts' && <div>
