@@ -775,7 +775,7 @@ function FamilyMemberAccordion({ member, index, familyId, isOpen, onToggle, onUp
 }
 
 // Park Planning Accordion
-function ParkPlanningAccordion({ park, isOpen, onToggle, items, onAddItem, onRemoveItem, currentUser }) {
+function ParkPlanningAccordion({ park, isOpen, onToggle, items, onAddItem, onRemoveItem, onVoteItem, currentUser }) {
   const [newItemText, setNewItemText] = useState('');
   
   const handleAdd = (e) => {
@@ -785,6 +785,14 @@ function ParkPlanningAccordion({ park, isOpen, onToggle, items, onAddItem, onRem
       setNewItemText('');
     }
   };
+
+  // Sort items by net votes (upvotes - downvotes), then by upvotes
+  const sortedItems = [...items].sort((a, b) => {
+    const netA = (a.upvotes || 0) - (a.downvotes || 0);
+    const netB = (b.upvotes || 0) - (b.downvotes || 0);
+    if (netB !== netA) return netB - netA;
+    return (b.upvotes || 0) - (a.upvotes || 0);
+  });
 
   return (
     <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', marginBottom: 12 }}>
@@ -812,23 +820,72 @@ function ParkPlanningAccordion({ park, isOpen, onToggle, items, onAddItem, onRem
             <button onClick={handleAdd} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#667eea', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Add</button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {items.length === 0 ? (
+            {sortedItems.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px', color: '#aaa', fontSize: 13 }}>No items yet. Add what you want to see!</div>
             ) : (
-              items.map(item => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: '#4a4a6a' }}>{item.text}</div>
-                    {item.addedBy && <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>Added by {item.addedBy}</div>}
+              sortedItems.map(item => {
+                const hasUpvoted = (item.upvoters || []).includes(currentUser?.name);
+                const hasDownvoted = (item.downvoters || []).includes(currentUser?.name);
+                const netVotes = (item.upvotes || 0) - (item.downvotes || 0);
+                
+                return (
+                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onVoteItem(park.id, item.id, 'upvote'); }}
+                        style={{
+                          width: 32,
+                          height: 28,
+                          borderRadius: 6,
+                          border: '1px solid #e8e0f0',
+                          background: hasUpvoted ? '#f6ffed' : '#fff',
+                          color: hasUpvoted ? '#52c41a' : '#888',
+                          fontSize: 14,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 600
+                        }}
+                      >
+                        ▲
+                      </button>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: netVotes > 0 ? '#52c41a' : netVotes < 0 ? '#f5576c' : '#888', minWidth: 20, textAlign: 'center' }}>
+                        {netVotes > 0 ? '+' : ''}{netVotes}
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onVoteItem(park.id, item.id, 'downvote'); }}
+                        style={{
+                          width: 32,
+                          height: 28,
+                          borderRadius: 6,
+                          border: '1px solid #e8e0f0',
+                          background: hasDownvoted ? '#fff0f0' : '#fff',
+                          color: hasDownvoted ? '#f5576c' : '#888',
+                          fontSize: 14,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 600
+                        }}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, color: '#4a4a6a' }}>{item.text}</div>
+                      {item.addedBy && <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>Added by {item.addedBy}</div>}
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onRemoveItem(park.id, item.id); }}
+                      style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      ×
+                    </button>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onRemoveItem(park.id, item.id); }}
-                    style={{ padding: '4px 8px', borderRadius: 6, border: 'none', background: '#fff0f0', color: '#f5576c', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -1238,7 +1295,11 @@ export default function App() {
       updated.parkWishlist[parkId].items.push({
         id: `item-${Date.now()}-${Math.random()}`,
         text: text.trim(),
-        addedBy: currentUser?.name || 'Unknown'
+        addedBy: currentUser?.name || 'Unknown',
+        upvotes: 0,
+        downvotes: 0,
+        upvoters: [],
+        downvoters: []
       });
       return updated;
     });
@@ -1255,6 +1316,52 @@ export default function App() {
       return updated;
     });
     addHistory(`removed item from ${data?.parkWishlist?.[parkId]?.name || parkId}`);
+  };
+
+  const voteParkItem = (parkId, itemId, voteType) => {
+    if (!data || !currentUser) return;
+    setData(p => {
+      const updated = JSON.parse(JSON.stringify(p));
+      if (!updated.parkWishlist[parkId]) return updated;
+      
+      const item = updated.parkWishlist[parkId].items.find(i => i.id === itemId);
+      if (!item) return updated;
+      
+      const hasUpvoted = (item.upvoters || []).includes(currentUser.name);
+      const hasDownvoted = (item.downvoters || []).includes(currentUser.name);
+      
+      if (voteType === 'upvote') {
+        if (hasUpvoted) {
+          // Remove upvote
+          item.upvotes = Math.max(0, item.upvotes - 1);
+          item.upvoters = (item.upvoters || []).filter(v => v !== currentUser.name);
+        } else {
+          // Add upvote, remove downvote if exists
+          item.upvotes = (item.upvotes || 0) + 1;
+          item.upvoters = [...(item.upvoters || []), currentUser.name];
+          if (hasDownvoted) {
+            item.downvotes = Math.max(0, (item.downvotes || 0) - 1);
+            item.downvoters = (item.downvoters || []).filter(v => v !== currentUser.name);
+          }
+        }
+      } else if (voteType === 'downvote') {
+        if (hasDownvoted) {
+          // Remove downvote
+          item.downvotes = Math.max(0, item.downvotes - 1);
+          item.downvoters = (item.downvoters || []).filter(v => v !== currentUser.name);
+        } else {
+          // Add downvote, remove upvote if exists
+          item.downvotes = (item.downvotes || 0) + 1;
+          item.downvoters = [...(item.downvoters || []), currentUser.name];
+          if (hasUpvoted) {
+            item.upvotes = Math.max(0, (item.upvotes || 0) - 1);
+            item.upvoters = (item.upvoters || []).filter(v => v !== currentUser.name);
+          }
+        }
+      }
+      
+      return updated;
+    });
   };
 
   // Migrate old contacts structure to families if needed
@@ -1614,6 +1721,7 @@ export default function App() {
                     items={park.items || []}
                     onAddItem={addParkItem}
                     onRemoveItem={removeParkItem}
+                    onVoteItem={voteParkItem}
                     currentUser={currentUser}
                   />
                 ))}
